@@ -210,7 +210,7 @@ npx supabase gen types typescript --linked > src/lib/database.types.ts
 
 ## Open decisions (ask Sahan when you reach them)
 
-1. **Keyboards:** accessory (the current assumption) or tagged asset?
+1. **Keyboards:** ~~accessory or tagged asset?~~ Decided 13/10/2026: accessory, like Mouse.
 2. **HR access:** strictly view-only, or allowed to add joiners and mark leavers?
 3. **FLT-0001** (Lanka PC, cost 0): was it under warranty?
 4. **Per-category numbers:**
