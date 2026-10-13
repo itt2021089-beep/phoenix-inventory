@@ -8,11 +8,11 @@ and the RLS checklist at the bottom passes.
 
 ## Phase 0: Setup
 
-- [ ] Sahan creates:
+- [x] Sahan creates:
   - [x] a private GitHub repo `phoenix-inventory` containing `CLAUDE.md`, `docs/` and `.gitignore`
-  - [ ] Supabase projects `phoenix-inventory-dev` and `phoenix-inventory-prod`, in the closest region
+  - [x] Supabase projects `phoenix-inventory-dev` and `phoenix-inventory-prod`, in the closest region
     (Mumbai, or Singapore)
-  - [ ] Supabase settings: in Authentication, disable new sign-ups
+  - [x] Supabase settings: in Authentication, disable new sign-ups
 - [x] Scaffold Vite + React + TypeScript in this folder, keeping the existing files ("Ignore files and
   continue", or scaffold in a temp folder and move the files in).
 - [x] Add the stack:
@@ -23,26 +23,30 @@ and the RLS checklist at the bottom passes.
 - [x] Environment files:
   - [x] `src/lib/supabase.ts` reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
   - [x] commit `.env.example`; `.env.local` stays gitignored
-- [ ] Supabase CLI: `npx supabase init` (done — `supabase/config.toml` is committed), then link
-  the DEV project. Linking needs the project ref and a Supabase access token.
+- [x] Supabase CLI: `npx supabase init`, then link the DEV project.
 - [x] Migration `profiles_and_roles`:
   - [x] the `profiles` table
   - [x] the `is_admin()` and `is_viewer_or_admin()` helpers
   - [x] RLS
-- [ ] In DEV, create Sahan's user (dashboard, auto-confirm) and give it an `admin` profile row.
+- [x] In DEV, create Sahan's user (dashboard, auto-confirm) and give it an `admin` profile row.
 - [x] App shell:
   - [x] login page, auth guard, "no access" screen for users without a profile
   - [x] layout: sidebar on desktop, bottom nav on phone
   - [x] role badge and logout
-- [ ] Cloudflare Pages:
-  - [ ] connect the GitHub repo; build `npm run build`, output `dist`
-  - [ ] env vars point at DEV for now
+- [x] Cloudflare Pages:
+  - [x] connect the GitHub repo; build `npm run build`, output `dist`
+  - [x] env vars point at DEV for now
   - [x] add `public/_redirects`
 
 **Done when:**
 - the deployed URL loads, and Sahan can log in
 - a test user without a profile sees only the "no access" screen
 - the app can be installed from Chrome or Edge
+
+**Phase 0 done (13/10/2026).**
+- Sahan confirmed all three checks above on the deployed site.
+- `npm run test:rls` passes 11/11 against DEV.
+- New sign-ups are disabled on both DEV and PROD; checked through each project's auth settings.
 
 ---
 
