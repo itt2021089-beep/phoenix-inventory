@@ -337,6 +337,13 @@ Every write function except the public ones:
 - runs as a single transaction
 - sets `app.via_rpc` before touching asset movement columns
 
+**Execute grants.** New functions in `public` are not callable by `anon` by default: migration
+`revoke_anon_function_execute` switched off both the Supabase default grant to `anon` and the
+Postgres built-in grant to `PUBLIC`. So every function says who may call it:
+- `grant execute on function ... to authenticated;` for anything the app calls.
+- The three public functions (`get_public_asset`, `submit_fault_report`, `ping`) also need
+  `grant execute on function ... to anon;`. Nothing else ever gets that grant.
+
 | Function | What it does |
 |---|---|
 | `next_asset_tag(category_id)` | Locks the category row and returns `PBS-<prefix>-<NNN>` (at least 3 digits), then increments `next_tag_number`. |
