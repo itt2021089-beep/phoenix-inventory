@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 
-import type { Profile } from '@/lib/database.types'
+import type { Profile } from '@/lib/db'
 
 export type AuthState = {
   /** Still working out who the user is. Nothing should be decided while this is true. */

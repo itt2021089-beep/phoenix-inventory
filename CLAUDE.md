@@ -49,13 +49,16 @@ npm test         # Vitest
 npx supabase link --project-ref <ref>      # once per project
 npx supabase migration new <name>          # creates supabase/migrations/<timestamp>_<name>.sql
 npx supabase db push                       # apply new migrations to the linked project
-npx supabase gen types typescript --linked > src/lib/database.types.ts
+npm run gen:types                          # regenerate src/lib/database.types.ts after a db push
 ```
 
 - `.env.local` (gitignored) holds `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` and
   `VITE_PUBLIC_APP_URL` (the deployed URL, used inside QR codes).
 - `.env.example` is committed with the names only, no values.
 - Only push migrations to the PROD project when Sahan says so.
+- Use `npm run gen:types`, not a `>` redirect typed into PowerShell: PowerShell writes UTF-16, which
+  git treats as binary. `src/lib/database.types.ts` is generated, so app-level types go in
+  `src/lib/db.ts`.
 
 ## Users and roles
 
