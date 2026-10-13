@@ -6,9 +6,10 @@
 -- Everything happens in one transaction that is rolled back at the end, so it leaves no
 -- rows behind. It uses fake users only. Never put real staff names or NIDs in here.
 --
--- Phase 0 covers checklist items 1, 2 and 4 for the only table that exists yet. Items 3
--- (the asset guard trigger) and 5 (the submit_fault_report rate limit) arrive with the
--- tables they belong to, in Phases 1 and 3.
+-- Covers checklist items 1, 2 and 4: profiles in detail, then every table, view, function and
+-- sequence in public generically, so objects added in later phases are covered automatically.
+-- Item 3 (the asset guard trigger) and the per-action viewer checks are in actions.sql; item 5
+-- (the submit_fault_report rate limit) arrives in Phase 3.
 
 begin;
 
@@ -120,8 +121,70 @@ begin
   end;
   reset role;
 
+  -- ---------------------------------------------------------------------------
+  -- Every table and view, present and future (checklist items 1 and 4).
+  -- ---------------------------------------------------------------------------
+  declare
+    rel record;
+    fn  record;
+  begin
+    for rel in
+      select c.relname, c.relkind, c.relrowsecurity
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind in ('r', 'v', 'm', 'p')
+    loop
+      -- Tables: RLS on. Views: security_invoker, so the tables' RLS applies through them.
+      if rel.relkind in ('r', 'p') and not rel.relrowsecurity then
+        failures := array_append(failures, format('table %s has RLS off', rel.relname));
+      end if;
+      if rel.relkind = 'v' and not exists (
+           select 1 from pg_class c, unnest(c.reloptions) o
+           where c.relname = rel.relname and o in ('security_invoker=true', 'security_invoker=on')) then
+        failures := array_append(failures, format('view %s is not security_invoker', rel.relname));
+      end if;
+
+      -- 1. anon has no privilege at all on it.
+      if has_table_privilege('anon', format('public.%I', rel.relname), 'select,insert,update,delete') then
+        failures := array_append(failures, format('anon has privileges on %s', rel.relname));
+      end if;
+
+      -- 4. a signed-in user with no profile reads nothing from it.
+      set local role authenticated;
+      perform set_config('request.jwt.claim.sub', nobody_id::text, true);
+      begin
+        execute format('select count(*) from public.%I', rel.relname) into visible;
+        if visible <> 0 then
+          failures := array_append(failures, format('user with no profile saw %s rows in %s', visible, rel.relname));
+        end if;
+      exception when insufficient_privilege then null;
+      end;
+      reset role;
+    end loop;
+
+    -- 1. anon may execute only the three public functions (none exist before Phase 3).
+    for fn in
+      select p.oid, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname not in ('get_public_asset', 'submit_fault_report', 'ping')
+    loop
+      if has_function_privilege('anon', fn.oid, 'execute') then
+        failures := array_append(failures, format('anon can execute %s()', fn.proname));
+      end if;
+    end loop;
+
+    -- anon has no use of any sequence either.
+    for rel in
+      select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'S'
+    loop
+      if has_sequence_privilege('anon', format('public.%I', rel.relname), 'usage,select,update') then
+        failures := array_append(failures, format('anon can use sequence %s', rel.relname));
+      end if;
+    end loop;
+  end;
+
   if array_length(failures, 1) is null then
-    raise notice 'RLS checklist (Phase 0 scope): all checks passed.';
+    raise notice 'RLS checklist: all checks passed (every table, view, function and sequence in public).';
   else
     raise exception E'RLS checklist FAILED:\n  - %', array_to_string(failures, E'\n  - ');
   end if;

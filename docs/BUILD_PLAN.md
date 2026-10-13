@@ -53,17 +53,17 @@ and the RLS checklist at the bottom passes.
 ## Phase 1: Replace the Excel sheet
 
 ### Database
-- [ ] Migration `lookups`, with seeds from SCHEMA.md:
-  - [ ] departments, locations, categories, vendors, stock_items, accessory_types, settings
-- [ ] Migration `core`:
-  - [ ] employees, assets, asset_accessories, handover_forms, change_log, audit_log
-  - [ ] the number sequences
-  - [ ] the `updated_at` and audit triggers, and the asset guard trigger
-- [ ] RPCs: `next_asset_tag`, `add_assets`, `issue_assets`, `return_assets`, `transfer_assets`,
+- [x] Migration `lookups`, with seeds from SCHEMA.md:
+  - [x] departments, locations, categories, vendors, stock_items, accessory_types, settings
+- [x] Migration `core`:
+  - [x] employees, assets, asset_accessories, handover_forms, change_log, audit_log
+  - [x] the number sequences
+  - [x] the `updated_at` and audit triggers, and the asset guard trigger
+- [x] RPCs: `next_asset_tag`, `add_assets`, `issue_assets`, `return_assets`, `transfer_assets`,
   `move_asset`, `retire_asset`, `dispose_asset`.
   - Stock deduction inside `issue_assets` / `return_assets` can be a no-op until Phase 2 adds
     `stock_movements`.
-- [ ] Views: `v_category_summary`, `v_department_summary`, `v_employee_holdings`, `v_dashboard`
+- [x] Views: `v_category_summary`, `v_department_summary`, `v_employee_holdings`, `v_dashboard`
   (the counts it needs so far).
 - [ ] RLS on everything, then run the checklist.
 
@@ -101,7 +101,11 @@ and the RLS checklist at the bottom passes.
 - [ ] **Settings:**
   - categories (prefix, min spares, typical replacement cost, service interval, custom fields editor)
   - accessory types (with stock link), departments, locations, vendors
-- [ ] **Import from workbook:** see the mapping below.
+- [ ] **Import from workbook:** see the mapping below. The Fault Log tab and the Consumables
+  quantities are imported in Phase 2, with the tables they need (decided 13/10/2026). Until then
+  the preview lists them as "imported in Phase 2".
+  - Uses the admin-only `import_workbook` RPC (in docs/SCHEMA.md), so the existing CHG numbers and
+    dates are kept rather than re-issued.
 - [ ] **Export to Excel:** see the spec below.
 
 **Done when:**
@@ -117,6 +121,8 @@ and the RLS checklist at the bottom passes.
 
 - [ ] Migration `stock_movements` plus its trigger. Turn on the accessory → stock link in issue and
   return.
+- [ ] Import the workbook's Fault Log tab and the Consumables opening movements (deferred from
+  Phase 1), extending `import_workbook`.
 - [ ] Migration `faults_and_service`: fault_log, service_jobs, service_lines and their RPCs
   (`record_service_job`, `send_for_repair`, `back_from_repair`).
   - Create service_lines before fault_log, or add the `service_line_id` FK afterwards.

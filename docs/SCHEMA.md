@@ -173,13 +173,19 @@ audit cols + updated_by uuid
 checks:
   status = 'spare'                     -> assigned_employee_id is null
   status in ('retired','disposed')     -> assigned_employee_id is null
-guard trigger:
+guard trigger (before insert or update):
   raise if status, assigned_employee_id, location_id or department_id change
   unless current_setting('app.via_rpc', true) = 'on'.
-  The movement RPCs set it with set_config('app.via_rpc', 'on', true).
+  The movement RPCs set it with set_config('app.via_rpc', 'on', true), and put the previous
+  value back before returning: the setting lasts for the whole transaction, not the function.
+  Inserts are refused unless via an RPC (add_assets), so every asset starts with a Received row.
+  asset_tag never changes, not even through an RPC.
 ```
 
 Dashboard warning (not a constraint): an asset that is In Use but has no person and no location.
+
+`employees` also has a trigger: setting `status = 'left'` is refused while the person still holds
+any asset, and the error lists the tags.
 
 ### asset_accessories (accessories currently with an asset)
 ```
@@ -335,7 +341,7 @@ Every write function except the public ones:
 - is `security definer` with `set search_path = public`
 - calls `is_admin()` first and raises `not allowed` otherwise
 - runs as a single transaction
-- sets `app.via_rpc` before touching asset movement columns
+- sets `app.via_rpc` before touching asset movement columns, and restores it before returning
 
 **Execute grants.** New functions in `public` are not callable by `anon` by default: migration
 `revoke_anon_function_execute` switched off both the Supabase default grant to `anon` and the
@@ -344,17 +350,26 @@ Postgres built-in grant to `PUBLIC`. So every function says who may call it:
 - The three public functions (`get_public_asset`, `submit_fault_report`, `ping`) also need
   `grant execute on function ... to anon;`. Nothing else ever gets that grant.
 
+The same goes for tables and sequences: migration `lookups` switched off the Supabase default
+that grants new ones to `anon`, and each table still revokes `anon` explicitly.
+
+Optional trailing parameters added beyond the signatures below (all default to null):
+`issue_assets` already lists its own; `return_assets(..., return_date, location_id)`,
+`transfer_assets(..., transfer_date, reason)`, `move_asset(..., move_date)`,
+`retire_asset(..., date)`, `dispose_asset(..., date)`. Dates default to today. Parameter names
+in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the API calls use.
+
 | Function | What it does |
 |---|---|
 | `next_asset_tag(category_id)` | Locks the category row and returns `PBS-<prefix>-<NNN>` (at least 3 digits), then increments `next_tag_number`. |
 | `add_assets(category_id, qty, fields jsonb, serials text[])` | Bulk-creates Spare assets with tags and writes a `received_new` change row for each. Returns the tags. |
 | `issue_assets(employee_id, items jsonb, location_id, issue_date, reason, make_form bool)` | `items` is `[{asset_id, condition, accessory_type_ids[]}]`. Sets each asset to In Use with the person, department (from the employee), location (default: the employee's desk) and `date_assigned`. Writes `issued` rows, sets `asset_accessories`, and deducts linked accessory stock. Optionally creates the HO form. Returns the `form_no`. |
-| `return_assets(items jsonb, return_condition, data_backed_up, remarks, make_form bool)` | `items` is `[{asset_id, condition, accessories_returned[], accessories_missing[], next_status, fault_description?}]`, where `next_status` is spare, under_repair or faulty. Clears the person and sets the status. Writes `returned` rows, returns accessory stock, and opens a fault if a description is given. |
-| `transfer_assets(from_employee_id, to_employee_id, asset_ids uuid[], make_form bool)` | Writes `reassigned` rows. Department and location follow the new employee. |
+| `return_assets(items jsonb, return_condition, data_backed_up, remarks, make_form bool)` | `items` is `[{asset_id, condition, accessories_returned[], accessories_missing[], next_status, fault_description?}]`, where `next_status` is spare, under_repair or faulty. All items must have the same holder (or none); a form needs a holder. Clears the person and the department, and moves the asset to `location_id` (default: the IT store). Returned accessories linked to a stock item go back to stock and come off the asset; other returned ones (charger, bag) stay with it; missing ones come off. Writes `returned` rows, returns accessory stock, and opens a fault if a description is given. **Until Phase 2** the stock step is a no-op and the fault description is kept in the row's `reason`. |
+| `transfer_assets(from_employee_id, to_employee_id, asset_ids uuid[], make_form bool)` | Writes `reassigned` rows. Department and location follow the new employee (location stays put if they have no desk). Accessories go with the asset. |
 | `swap_asset(faulty_asset_id, spare_asset_id, fault_description)` | Opens a fault on the old asset (→ Under Repair) and issues the spare to the same person and location. Moves the accessories over. Writes both change rows. |
 | `move_asset(asset_id, location_id, department_id, reason)` | Writes a `location_changed` row. |
 | `send_for_repair(asset_id, fault_id, vendor_id)` / `back_from_repair(asset_id, condition, next_status)` | Status changes plus the change rows. Updates the fault status (with_vendor / closed). |
-| `retire_asset(asset_id, reason)` / `dispose_asset(asset_id, reason)` | Clears the person and writes the change row. |
+| `retire_asset(asset_id, reason)` / `dispose_asset(asset_id, reason)` | A reason is required. Clears the person and writes the change row. Retire works from any active status; Dispose from anything but Disposed. |
 | `record_service_job(header jsonb, lines jsonb)` | Creates the job and its lines and fills `next_due_date`. Returns `job_no`. |
 | `get_public_asset(tag)` | **Public (anon).** Returns only `asset_tag, category name, make, model` for an active asset, or nothing. |
 | `submit_fault_report(tag, reporter_name, description, photo_path)` | **Public (anon).** Validates the lengths (name ≤ 80, description 5–1000) and the rate limit per asset. Inserts a fault with `source = 'qr'` and fills `holder_employee_id`. Returns `fault_no`. |
@@ -371,17 +386,17 @@ Postgres built-in grant to `PUBLIC`. So every function says who may call it:
 | `v_due_soon` | Warranty endings and next service dates (latest line per asset) within `reminder_window_days`, or overdue |
 | `v_asset_costs` | Per asset: `repair_spend` (fault costs + service line costs), `replacement_basis` (purchase_price, else the category's typical cost), `spend_pct`, `faults_last_12m`, `flagged` |
 | `v_open_faults` | Faults not closed, with asset, holder, vendor and age in days |
-| `v_dashboard` | One row: open faults, faulty/under repair, lost/stolen, spare total, in-use-without-holder, categories below min spares, stock to reorder, items due soon |
+| `v_dashboard` | One row: open faults, faulty/under repair, lost/stolen, spare total, in-use-without-holder, categories below min spares, stock to reorder, items due soon. Phase 1 has `active_total`, `in_use`, `spare_total`, `faulty_or_repair`, `lost_stolen`, `in_use_without_holder` (no person **and** no location) and `categories_below_min`. Returns no row at all to a user with no profile. |
 
 ## Access matrix (RLS)
 
 | Object | admin | viewer | anon (logged out) |
 |---|---|---|---|
 | select on all tables and views | ✅ | ✅ | ❌ |
-| insert / update on lookups, employees, assets (non-movement columns), faults, service, stock | ✅ | ❌ | ❌ |
+| insert / update on lookups, employees, assets (non-movement columns), faults, service, stock | ✅ (assets: update only; new assets come from `add_assets`) | ❌ | ❌ |
 | asset movement columns | only through the RPCs | ❌ | ❌ |
 | delete | only unused lookup rows (location, vendor, accessory type) | ❌ | ❌ |
-| change_log, audit_log, handover_forms | insert through the RPCs; never update or delete | ❌ | ❌ |
+| change_log, audit_log, handover_forms, asset_accessories | insert through the RPCs (audit_log: through its trigger); change_log, audit_log and handover_forms are never updated or deleted | ❌ | ❌ |
 | execute write RPCs | ✅ | ❌ (raises `not allowed`) | ❌ |
 | execute `get_public_asset`, `submit_fault_report`, `ping` | ✅ | ✅ | ✅ |
 
