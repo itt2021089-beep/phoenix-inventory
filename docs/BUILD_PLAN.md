@@ -324,7 +324,9 @@ A4 portrait, matching the company's paper form, with everything pre-filled from 
    an hour gets refused.
 
 Automate this with an SQL test script (`supabase/tests/rls.sql`) or a small Vitest suite against
-DEV, using test accounts and fake data.
+DEV, using test accounts and fake data. Both exist: `supabase/tests/rls.sql` (run with psql as
+`postgres`) and `npm run test:rls` (`supabase/tests/rls.api.test.ts`, through the real API as the
+`TEST_*` accounts in `.env.test.local`). Extend both as each phase adds tables.
 
 ## `.gitignore` additions
 

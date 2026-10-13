@@ -3,7 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 // vitest/config so the `test` block below is typed
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [
@@ -35,6 +35,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // supabase/tests talks to the real DEV project; it runs only via `npm run test:rls`.
+    exclude: [...configDefaults.exclude, 'supabase/**'],
     css: true,
   },
 })
