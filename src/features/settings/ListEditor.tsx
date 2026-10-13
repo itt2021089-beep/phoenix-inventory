@@ -90,7 +90,13 @@ export function ListEditor({
     setEditing(row ? row.id : 'new')
     setDraft(
       Object.fromEntries(
-        columns.map((c) => [c.key, row?.[c.key] == null ? '' : String(row[c.key])]),
+        columns.map((c) => {
+          if (row?.[c.key] != null) return [c.key, String(row[c.key])]
+          // A required list has no "None" choice, so the browser shows its first option. Start
+          // on that option, or a blank would be sent while the screen showed a choice.
+          if (c.type === 'select' && c.required) return [c.key, c.options?.[0]?.value ?? '']
+          return [c.key, '']
+        }),
       ),
     )
   }

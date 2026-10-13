@@ -65,26 +65,28 @@ and the RLS checklist at the bottom passes.
     `stock_movements`.
 - [x] Views: `v_category_summary`, `v_department_summary`, `v_employee_holdings`, `v_dashboard`
   (the counts it needs so far).
-- [ ] RLS on everything, then run the checklist.
+- [x] RLS on everything, then run the checklist. (14/10/2026: `npm run test:rls` 66 passed and 1
+  skipped on DEV, the skip needing an issued asset; 67/67 on a local copy with one issued.)
 
 ### Screens
-- [ ] **Dashboard v1:**
+- [x] **Dashboard v1:**
   - counts by status, by category and by department
   - spares per category
   - an "In Use with no person and no location" warning
-- [ ] **Assets list:**
+- [x] **Assets list:**
   - search by tag, serial, person or model
   - filter by category, status, department or location
   - Excel export of the filtered list
-- [ ] **Asset page:**
+- [x] **Asset page:**
   - details, accessories and the timeline (Change Log rows, newest first)
-  - action buttons that match the status (Issue, Return, Transfer, Move, Retire, Dispose)
-- [ ] **Add asset:**
+  - action buttons that match the status (Issue, Return, Transfer, Move, Retire, Dispose).
+    Move, Retire and Dispose work here; Issue, Return and Transfer open the screens below.
+- [x] **Add asset:**
   - the tag is assigned automatically
   - the category's custom fields render automatically
   - make/model autocomplete from earlier entries
   - "Duplicate this asset"
-- [ ] **Bulk add:** category + quantity + common fields + optional serial list → creates the tags in
+- [x] **Bulk add:** category + quantity + common fields + optional serial list → creates the tags in
   one go and shows them.
 - [ ] **People:**
   - list, plus add/edit with NID validation (strip a leading "NIC" and spaces)
@@ -98,7 +100,7 @@ and the RLS checklist at the bottom passes.
   5. Save, then the "Print handover form" option
 - [ ] **Return** and **Transfer** screens, built the same way.
 - [ ] **Handover form print page:** see the spec below.
-- [ ] **Settings:**
+- [x] **Settings:**
   - categories (prefix, min spares, typical replacement cost, service interval, custom fields editor)
   - accessory types (with stock link), departments, locations, vendors
 - [ ] **Import from workbook:** see the mapping below. The Fault Log tab and the Consumables
