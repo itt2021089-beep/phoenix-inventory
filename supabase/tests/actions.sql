@@ -90,6 +90,12 @@ begin
     '%assets_serial_ci%', 'serial numbers are unique case-insensitively');
   perform pg_temp.check((select next_tag_number from categories where id = lap) = 3,
     'a failed add_assets uses up no tag number');
+  perform pg_temp.expect_error(format($q$update categories set next_tag_number = 1 where id = %s$q$, lap),
+    '%can only go up%', 'tag counter never goes back');
+  perform pg_temp.expect_error(format($q$update categories set tag_prefix = 'LPT' where id = %s$q$, lap),
+    '%cannot change%', 'prefix fixed once used');
+  update categories set tag_prefix = 'CMX' where tag_prefix = 'CAM';
+  perform pg_temp.check(exists (select 1 from categories where tag_prefix = 'CMX'), 'unused prefix can change');
   tags := add_assets(hst, 1, '{}');
   select id into l1 from assets where asset_tag = 'PBS-LAP-001';
   select id into l2 from assets where asset_tag = 'PBS-LAP-002';

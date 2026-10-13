@@ -323,3 +323,25 @@ $$;
 
 create trigger employees_left_guard before update on public.employees
   for each row execute function public.employees_left_guard();
+
+-- Tag numbers are never reused (CLAUDE.md, Vocabulary). The Settings page edits categories, so
+-- the counter may only go up, and the prefix is fixed once any asset carries it.
+create or replace function public.categories_tag_guard()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.next_tag_number < old.next_tag_number then
+    raise exception 'The next tag number can only go up (tag numbers are never reused)';
+  end if;
+  if new.tag_prefix is distinct from old.tag_prefix
+     and exists (select 1 from public.assets where category_id = old.id) then
+    raise exception 'The % prefix is already on asset tags, so it cannot change', old.tag_prefix;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger categories_tag_guard before update on public.categories
+  for each row execute function public.categories_tag_guard();

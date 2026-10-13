@@ -109,6 +109,7 @@ custom_fields             jsonb not null default '[]'
                           -- [{ "key": "btu", "label": "BTU", "type": "number"|"text"|"date"|"boolean"|"select",
                           --    "options": [...], "required": false }]
 is_active                 boolean not null default true
+trigger: next_tag_number may only go up; tag_prefix is fixed once any asset uses the category.
 ```
 
 ### vendors
