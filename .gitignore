@@ -12,9 +12,6 @@ dev-dist/
 !.env.example
 
 # real company data (staff names, NIDs): never commit
-data/
-*.xlsx
-!tests/fixtures/*.xlsx
 
 # supabase cli
 supabase/.temp/
