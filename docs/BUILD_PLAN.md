@@ -9,34 +9,35 @@ and the RLS checklist at the bottom passes.
 ## Phase 0: Setup
 
 - [ ] Sahan creates:
-  - [ ] a private GitHub repo `phoenix-inventory` containing `CLAUDE.md`, `docs/` and `.gitignore`
+  - [x] a private GitHub repo `phoenix-inventory` containing `CLAUDE.md`, `docs/` and `.gitignore`
   - [ ] Supabase projects `phoenix-inventory-dev` and `phoenix-inventory-prod`, in the closest region
     (Mumbai, or Singapore)
   - [ ] Supabase settings: in Authentication, disable new sign-ups
-- [ ] Scaffold Vite + React + TypeScript in this folder, keeping the existing files ("Ignore files and
+- [x] Scaffold Vite + React + TypeScript in this folder, keeping the existing files ("Ignore files and
   continue", or scaffold in a temp folder and move the files in).
-- [ ] Add the stack:
-  - [ ] Tailwind + shadcn/ui
-  - [ ] React Router, TanStack Query, react-hook-form + zod
-  - [ ] ESLint + Prettier, Vitest
-  - [ ] `vite-plugin-pwa` (name "Phoenix Inventory", simple icon)
-- [ ] Environment files:
-  - [ ] `src/lib/supabase.ts` reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
-  - [ ] commit `.env.example`; `.env.local` stays gitignored
-- [ ] Supabase CLI: `npx supabase init`, then link the DEV project.
-- [ ] Migration `profiles_and_roles`:
-  - [ ] the `profiles` table
-  - [ ] the `is_admin()` and `is_viewer_or_admin()` helpers
-  - [ ] RLS
+- [x] Add the stack:
+  - [x] Tailwind + shadcn/ui
+  - [x] React Router, TanStack Query, react-hook-form + zod
+  - [x] ESLint + Prettier, Vitest
+  - [x] `vite-plugin-pwa` (name "Phoenix Inventory", simple icon)
+- [x] Environment files:
+  - [x] `src/lib/supabase.ts` reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
+  - [x] commit `.env.example`; `.env.local` stays gitignored
+- [ ] Supabase CLI: `npx supabase init` (done — `supabase/config.toml` is committed), then link
+  the DEV project. Linking needs the project ref and a Supabase access token.
+- [x] Migration `profiles_and_roles`:
+  - [x] the `profiles` table
+  - [x] the `is_admin()` and `is_viewer_or_admin()` helpers
+  - [x] RLS
 - [ ] In DEV, create Sahan's user (dashboard, auto-confirm) and give it an `admin` profile row.
-- [ ] App shell:
-  - [ ] login page, auth guard, "no access" screen for users without a profile
-  - [ ] layout: sidebar on desktop, bottom nav on phone
-  - [ ] role badge and logout
+- [x] App shell:
+  - [x] login page, auth guard, "no access" screen for users without a profile
+  - [x] layout: sidebar on desktop, bottom nav on phone
+  - [x] role badge and logout
 - [ ] Cloudflare Pages:
   - [ ] connect the GitHub repo; build `npm run build`, output `dist`
   - [ ] env vars point at DEV for now
-  - [ ] add `public/_redirects`
+  - [x] add `public/_redirects`
 
 **Done when:**
 - the deployed URL loads, and Sahan can log in
@@ -323,7 +324,9 @@ A4 portrait, matching the company's paper form, with everything pre-filled from 
    an hour gets refused.
 
 Automate this with an SQL test script (`supabase/tests/rls.sql`) or a small Vitest suite against
-DEV, using test accounts and fake data.
+DEV, using test accounts and fake data. Both exist: `supabase/tests/rls.sql` (run with psql as
+`postgres`) and `npm run test:rls` (`supabase/tests/rls.api.test.ts`, through the real API as the
+`TEST_*` accounts in `.env.test.local`). Extend both as each phase adds tables.
 
 ## `.gitignore` additions
 

@@ -84,6 +84,17 @@ SQL helpers (`security definer`, `stable`, `set search_path = public`):
 - `is_admin()`: true if the current user's profile role is `admin`.
 - `is_viewer_or_admin()`: true if the current user has any profile row.
 
+`profiles` has no insert, update or delete policy. Sahan creates and edits profiles in the
+Supabase dashboard, so nothing can grant itself a role through the API.
+
+> **Use `enable row level security`, never `force row level security`.**
+> The helpers above are `security definer` and read `profiles` as the table's owner. `force`
+> subjects the owner to the policies too, so both helpers return false for every user and the
+> whole app locks out silently — no error, just an empty app. Verified against Postgres with a
+> non-superuser owner; a superuser owner hides the problem, so it will not show up in every
+> test setup. `enable` on its own is safe here, because neither `anon` nor `authenticated` owns
+> any table. This applies to every table, not just `profiles`.
+
 ### categories
 ```
 id                        smallint identity PK
