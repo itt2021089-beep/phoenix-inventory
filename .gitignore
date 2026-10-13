@@ -1,24 +1,24 @@
 # dependencies and builds
 node_modules/
-dist/
-dev-dist/
+#dist/
+#dev-dist/
 *.log
 
 # secrets: only .env.example is committed
-.env
-.env.local
-.env.test.local
-.env.*
-!.env.example
+#.env
+#.env.local
+#.env.test.local
+#.env.*
+#!.env.example
 
 # real company data (staff names, NIDs): never commit
 
 # supabase cli
-supabase/.temp/
-supabase/.branches/
+#supabase/.temp/
+#supabase/.branches/
 
 # os / editor
-.DS_Store
-Thumbs.db
-.vscode/*
+#.DS_Store
+#Thumbs.db
+#.vscode/*
 !.vscode/extensions.json
