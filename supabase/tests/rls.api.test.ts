@@ -146,3 +146,137 @@ describe('admin', () => {
     expect(after.data).toHaveLength(before.data!.length)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Phase 1 tables, views and actions.
+// ---------------------------------------------------------------------------
+const PHASE1_READABLE = [
+  'departments',
+  'locations',
+  'categories',
+  'vendors',
+  'stock_items',
+  'accessory_types',
+  'settings',
+  'employees',
+  'assets',
+  'asset_accessories',
+  'handover_forms',
+  'change_log',
+  'audit_log',
+  'v_category_summary',
+  'v_department_summary',
+  'v_employee_holdings',
+  'v_dashboard',
+] as const
+
+/**
+ * Every write action, with arguments that name real parameters (so PostgREST finds the
+ * function) but point at nothing. A caller who is not admin must be refused before any of it
+ * is looked at.
+ */
+const NOWHERE = '00000000-0000-0000-0000-000000000000'
+const WRITE_ACTIONS: [string, Record<string, unknown>][] = [
+  ['next_asset_tag', { p_category_id: 1 }],
+  ['add_assets', { p_category_id: 1, p_qty: 1 }],
+  ['issue_assets', { p_employee_id: NOWHERE, p_items: [] }],
+  ['return_assets', { p_items: [] }],
+  ['transfer_assets', { p_from_employee_id: NOWHERE, p_to_employee_id: NOWHERE, p_asset_ids: [] }],
+  ['move_asset', { p_asset_id: NOWHERE, p_location_id: null, p_department_id: null }],
+  ['retire_asset', { p_asset_id: NOWHERE, p_reason: 'rls test' }],
+  ['dispose_asset', { p_asset_id: NOWHERE, p_reason: 'rls test' }],
+]
+
+describe('1. logged out: Phase 1', () => {
+  const anon = client()
+
+  it.each(PHASE1_READABLE)('reads nothing from %s', async (name) => {
+    const { data, error } = await anon.from(name).select('*').limit(1)
+    if (error) expect(error.code, error.message).toBe(PERMISSION_DENIED)
+    else expect(data).toHaveLength(0)
+  })
+
+  it.each(WRITE_ACTIONS)('cannot call %s', async (fn, args) => {
+    const { error } = await anon.rpc(fn, args)
+    expect(error?.code, error?.message).toBe(PERMISSION_DENIED)
+  })
+})
+
+describe('4. no profile row: Phase 1', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('NOPROFILE')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it.each(PHASE1_READABLE)('reads nothing from %s', async (name) => {
+    const { data, error } = await s.c.from(name).select('*').limit(1)
+    expect(error).toBeNull()
+    expect(data).toHaveLength(0)
+  })
+})
+
+describe('2. viewer: Phase 1', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('VIEWER')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it('reads the seeded lists', async () => {
+    const deps = await s.c.from('departments').select('name')
+    expect(deps.error).toBeNull()
+    expect(deps.data?.map((d) => d.name)).toEqual(
+      expect.arrayContaining(['HR', 'Sales', 'Retention', 'Travel', 'IT']),
+    )
+    const cats = await s.c.from('categories').select('tag_prefix')
+    expect(cats.data?.length).toBeGreaterThanOrEqual(21)
+  })
+
+  it('reads the dashboard', async () => {
+    const { data, error } = await s.c.from('v_dashboard').select('*')
+    expect(error).toBeNull()
+    expect(data).toHaveLength(1)
+  })
+
+  it.each(WRITE_ACTIONS)('is told "not allowed" by %s', async (fn, args) => {
+    const { error } = await s.c.rpc(fn, args)
+    expect(error?.message).toBe('not allowed')
+  })
+
+  it('cannot add to a list', async () => {
+    const { error } = await s.c.from('departments').insert({ name: 'RLS test dept' })
+    // RLS refuses the row (42501), so nothing is written.
+    expect(error?.code, error?.message).toBe(PERMISSION_DENIED)
+  })
+
+  it('cannot add a person', async () => {
+    const { error } = await s.c
+      .from('employees')
+      .insert({ full_name: 'RLS Test', nid: '200099999999' })
+    expect(error?.code, error?.message).toBe(PERMISSION_DENIED)
+  })
+})
+
+describe('3. admin: the asset guard', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('ADMIN')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it('cannot add an asset directly (only add_assets can)', async () => {
+    const { error } = await s.c.from('assets').insert({ asset_tag: 'PBS-OTH-999', category_id: 1 })
+    expect(error?.code, error?.message).toBe(PERMISSION_DENIED)
+  })
+
+  it('cannot change status directly', async (ctx) => {
+    // Needs an asset someone holds. Spare + a holder also breaks a check constraint, so even
+    // if the guard were missing this attempt could not write anything to DEV.
+    const { data } = await s.c
+      .from('assets')
+      .select('id')
+      .not('assigned_employee_id', 'is', null)
+      .limit(1)
+    if (!data?.length) ctx.skip() // DEV has no issued assets yet (before the import)
+    const { error } = await s.c.from('assets').update({ status: 'spare' }).eq('id', data![0].id)
+    expect(error?.message).toMatch(/only through the Issue/)
+  })
+
+  // The other half of item 3 (the same change through the RPC works and writes a Change Log
+  // row) would write to DEV, so it lives in supabase/tests/actions.sql, which rolls back.
+})
