@@ -11,7 +11,16 @@ dev-dist/
 .env.*
 !.env.example
 
-# real company data (staff names, NIDs): never commit
+# real company data (staff names, NIDs): never commit.
+# data/* (not data/) so the two negations below can take effect: git does not look inside a
+# directory it has excluded outright. Those two files are already tracked and stay that way --
+# Sahan's call, and the repo is private. Anything else dropped in data/ (exports, backups) and
+# every other .xlsx is ignored.
+data/*
+*.xlsx
+!tests/fixtures/*.xlsx
+!data/README.txt
+!data/IT_Asset_Inventory_Phoenix_BPO.xlsx
 
 # supabase cli
 supabase/.temp/
