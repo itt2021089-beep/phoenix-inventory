@@ -5,11 +5,11 @@ node_modules/
 *.log
 
 # secrets: only .env.example is committed
-#.env
-#.env.local
-#.env.test.local
-#.env.*
-#!.env.example
+.env
+.env.local
+.env.test.local
+.env.*
+!.env.example
 
 # real company data (staff names, NIDs): never commit
 
