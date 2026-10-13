@@ -1,4 +1,4 @@
-import type { UserRole } from './database.types'
+import type { UserRole } from './db'
 
 /**
  * Codes stored in the database map to the labels Sahan already uses, in this one place.

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import type { Profile } from '@/lib/database.types'
+import { isUserRole, type Profile } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 
 import { AuthContext, type AuthState } from './auth-context'
@@ -11,7 +11,10 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   // RLS returns no row rather than an error for a user without a profile, so a null `data`
   // with no error is the normal "no access" case.
   if (error) throw error
-  return data
+  if (!data) return null
+  // The database only allows admin or viewer, but a role this app doesn't know means no
+  // access, never a guess.
+  return isUserRole(data.role) ? { ...data, role: data.role } : null
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
