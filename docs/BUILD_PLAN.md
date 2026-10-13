@@ -164,6 +164,8 @@ and the RLS checklist at the bottom passes.
 - [ ] RPCs `get_public_asset` and `submit_fault_report` (with the rate limit), plus the anon storage
   policy for `reports/`.
 - [ ] **Public report page** (must work on a cheap Android phone and on mobile data):
+  - load it as its own small chunk (route-level `React.lazy`), without the admin app: in Phase 1
+    the main bundle is ~220 kB gzipped, mostly react-dom, supabase-js, zod and react-router
   - shows tag, category, make and model only
   - fields: your name, what's wrong, optional photo
   - a thank-you screen with the FLT number

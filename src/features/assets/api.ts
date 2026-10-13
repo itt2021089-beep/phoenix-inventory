@@ -11,9 +11,6 @@ export const assetKeys = {
   makesModels: ['assets', 'makes-models'] as const,
 }
 
-/** Every Phase 1 list query invalidates on any asset change: there are a few hundred rows. */
-export const dashboardKeys = { all: ['dashboard'] as const }
-
 const LIST_SELECT = `
   id, asset_tag, make, model, serial_number, status, condition, date_assigned,
   specification, notes, accessories_note, category_id, department_id, location_id,

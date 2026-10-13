@@ -13,7 +13,8 @@ export type AssetFilters = {
   /** Free text: tag, serial, person, NID, make or model. Never put in the URL (it may hold an NID). */
   q: string
   category: string
-  /** A status code, 'active' (not Retired/Disposed, the default) or 'all'. */
+  /** A status code, 'active' (not Retired/Disposed, the default), 'needs_repair' (Faulty or
+   *  Under Repair) or 'all'. */
   status: string
   /** A department id, 'common' (no department) or ''. */
   department: string
