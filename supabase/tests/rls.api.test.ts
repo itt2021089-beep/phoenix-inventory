@@ -136,9 +136,13 @@ describe('admin', () => {
   })
 
   it('cannot delete a profile through the API', async () => {
+    // Both reads must succeed, or this would compare undefined with undefined and pass.
     const before = await s.c.from('profiles').select('id')
+    expect(before.error).toBeNull()
+    expect(before.data?.length).toBeGreaterThan(0)
     await s.c.from('profiles').delete().eq('id', s.id)
     const after = await s.c.from('profiles').select('id')
-    expect(after.data?.length).toBe(before.data?.length)
+    expect(after.error).toBeNull()
+    expect(after.data).toHaveLength(before.data!.length)
   })
 })
