@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseNotes, parseWorkbook, pickSpellings, type Sheets, toIsoDate } from './parseWorkbook'
+import {
+  parseNotes,
+  parseWorkbook,
+  pickSpellings,
+  type Sheets,
+  tidyVendor,
+  toAmount,
+  toIsoDate,
+  vendorInAction,
+} from './parseWorkbook'
 
 // Fake people, fake NIDs. Shaped exactly like the real workbook's tabs.
 const LISTS = [
@@ -239,7 +248,7 @@ describe('parseWorkbook', () => {
     })
   })
 
-  it('skips Change Log rows for mice, and says the Phase 2 tabs are not lost', () => {
+  it('skips Change Log and Fault Log rows for things that are not assets', () => {
     const r = parseWorkbook(
       sheets({
         'Change Log': [
@@ -253,11 +262,14 @@ describe('parseWorkbook', () => {
             'Reason / Details': '',
           },
         ],
-        'Fault Log': [{ 'Fault ID': 'FLT-0001' }],
+        'Fault Log': [{ 'Fault ID': 'FLT-0001', 'Asset Tag': 'PBS-MOU-001', 'Fault / Issue': 'x' }],
       }),
     )
     expect(r.payload.change_log).toHaveLength(0)
-    expect(r.warnings.find((w) => w.level === 'info')?.message).toMatch(/Fault Log.*Phase 2/)
+    expect(r.payload.faults).toHaveLength(0)
+    expect(r.warnings.map((w) => w.message)).toContain(
+      'FLT-0001: the asset PBS-MOU-001 is not in the Asset Register, so it is skipped.',
+    )
   })
 
   it('creates a category the Lists tab forgot, and says so', () => {
@@ -269,5 +281,155 @@ describe('parseWorkbook', () => {
       tag_prefix: 'MON',
     })
     expect(r.warnings[0].message).toMatch(/not in the Lists tab, so it is created/)
+  })
+})
+
+const fault = (over: Partial<Record<string, string>> = {}) => ({
+  'Fault ID': 'FLT-0001',
+  'Asset Tag': 'PBS-LAP-001',
+  'Date Reported': '2026-10-01',
+  'Reported By': 'TEST PERSON ONE',
+  'Fault / Issue': 'nuts are on loose',
+  'Action Taken': 'fix by supplier (lanka pc)',
+  'Cost (LKR)': '0',
+  'Date Closed': '2026-10-01',
+  Status: 'Closed',
+  Remarks: '',
+  ...over,
+})
+
+describe('helpers for the Phase 2 tabs', () => {
+  it('reads amounts', () => {
+    expect(toAmount('LKR 12,500')).toBe(12500)
+    expect(toAmount('0')).toBe(0)
+    expect(toAmount('')).toBeNull()
+    expect(toAmount('free')).toBeNull()
+    expect(toAmount('-5')).toBeNull()
+  })
+  it('finds the supplier in the action text and tidies its name', () => {
+    expect(vendorInAction('fix by supplier (lanka pc)')).toBe('lanka pc')
+    expect(vendorInAction('tightened the screws (10 minutes)')).toBeNull()
+    expect(tidyVendor('lanka pc')).toBe('Lanka PC')
+    expect(tidyVendor('ABANS')).toBe('Abans')
+    expect(tidyVendor('Singer Mega')).toBe('Singer Mega')
+  })
+})
+
+describe('the Fault Log tab', () => {
+  it('keeps FLT-0001 as the workbook has it, with the vendor and the reporter matched', () => {
+    const r = parseWorkbook(sheets({ 'Fault Log': [fault()] }))
+    expect(r.counts.faults).toBe(1)
+    expect(r.payload.faults[0]).toEqual({
+      fault_no: 'FLT-0001',
+      asset_tag: 'PBS-LAP-001',
+      date_reported: '2026-10-01',
+      reported_by_nid: '200012345678',
+      reported_by_name: null,
+      description: 'nuts are on loose',
+      action_taken: 'fix by supplier (lanka pc)',
+      vendor: 'Lanka PC',
+      cost: 0,
+      status: 'closed',
+      date_closed: '2026-10-01',
+      under_warranty: false,
+      cause: null,
+      responsible_nid: null,
+      remarks: null,
+    })
+  })
+
+  it('keeps an unknown reporter as typed, and says so', () => {
+    const r = parseWorkbook(sheets({ 'Fault Log': [fault({ 'Reported By': 'front desk' })] }))
+    expect(r.payload.faults[0].reported_by_nid).toBeNull()
+    expect(r.payload.faults[0].reported_by_name).toBe('Front Desk')
+    expect(r.warnings.some((w) => w.level === 'info' && /kept as typed/.test(w.message))).toBe(true)
+  })
+
+  it('dates a Closed fault with no close date on the day it was reported', () => {
+    const r = parseWorkbook(sheets({ 'Fault Log': [fault({ 'Date Closed': '' })] }))
+    expect(r.payload.faults[0].date_closed).toBe('2026-10-01')
+  })
+
+  it('reads the extra columns our own export writes', () => {
+    const r = parseWorkbook(
+      sheets({
+        'Fault Log': [
+          fault({
+            Status: 'With Vendor',
+            'Date Closed': '',
+            'Cost (LKR)': 'LKR 4,500',
+            Vendor: 'Abans Service',
+            'Under Warranty': 'Yes',
+            Cause: 'Wear and tear',
+            Responsible: 'test person one',
+          }),
+        ],
+      }),
+    )
+    expect(r.payload.faults[0]).toMatchObject({
+      status: 'with_vendor',
+      date_closed: null,
+      cost: 4500,
+      vendor: 'Abans Service',
+      under_warranty: true,
+      cause: 'wear_and_tear',
+      responsible_nid: '200012345678',
+    })
+  })
+
+  it('skips bad rows with a reason, and never puts an NID in a warning', () => {
+    const r = parseWorkbook(
+      sheets({
+        'Fault Log': [
+          fault({ 'Fault ID': '7' }),
+          fault(),
+          fault(),
+          fault({ 'Fault ID': 'FLT-0002', 'Fault / Issue': '' }),
+          fault({ 'Fault ID': 'FLT-0003', Responsible: 'Someone Else', 'Cost (LKR)': 'n/a' }),
+          { 'Fault ID': '', 'Asset Tag': '', 'Fault / Issue': '' },
+        ],
+      }),
+    )
+    expect(r.payload.faults.map((f) => f.fault_no)).toEqual(['FLT-0001', 'FLT-0003'])
+    const messages = r.warnings.filter((w) => w.level === 'warning').map((w) => w.message)
+    expect(messages).toEqual([
+      'Fault Log row 2: the Fault ID "7" is not like FLT-0001, so the row is skipped.',
+      'Fault Log row 4: FLT-0001 appears more than once; only the first is imported.',
+      'FLT-0002: there is no Fault / Issue text, so it is skipped.',
+      'FLT-0003: the cost "n/a" is not a number, so it is imported as 0.',
+      'FLT-0003: "Responsible" names someone not in the Asset Register, so it is left blank.',
+    ])
+    expect(r.warnings.some((w) => w.message.includes('200012345678'))).toBe(false)
+  })
+})
+
+describe('the Consumables tab', () => {
+  const row = (over: Partial<Record<string, string>> = {}) => ({
+    'Item Code': 'MOU-0001',
+    Item: 'optical mouse',
+    'Qty Received': '30',
+    'Qty Issued': '22',
+    'In Stock': '8',
+    'Reorder Level': '10',
+    'Reorder?': 'REORDER',
+    Notes: '',
+    ...over,
+  })
+
+  it('turns received and issued into the opening balance', () => {
+    const r = parseWorkbook(sheets({ Consumables: [row(), row({ Item: '' })] }))
+    expect(r.payload.stock).toEqual([
+      { name: 'Optical mouse', reorder_level: 10, qty_received: 30, qty_issued: 22 },
+    ])
+    expect(r.counts.stock).toBe(1)
+    expect(r.warnings.map((w) => w.message)).toContain(
+      'Optical mouse: opening stock 8 (30 received, 22 issued).',
+    )
+  })
+
+  it('refuses more out than in, since stock never goes below 0', () => {
+    const r = parseWorkbook(sheets({ Consumables: [row({ 'Qty Issued': '31' })] }))
+    expect(r.payload.stock).toHaveLength(0)
+    expect(r.warnings[0].message).toMatch(/31 issued but only 30 received/)
   })
 })

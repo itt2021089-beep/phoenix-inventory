@@ -44,7 +44,8 @@ faults.addRow(['FLT-0001', 'PBS-LAP-001', new Date(Date.UTC(2026, 9, 1)), 'test 
 
 const cons = wb.addWorksheet('Consumables')
 cons.addRow(['Item Code', 'Item', 'Qty Received', 'Qty Issued', 'In Stock', 'Reorder Level', 'Reorder?', 'Notes'])
-cons.addRow(['MOU-0001', 'optical mouse', 30, 22, 8, 10, 'REORDER', ''])
+// Like the real file, In Stock and Reorder? are formulas; the reader takes their values.
+cons.addRow(['MOU-0001', 'optical mouse', 30, 22, { formula: 'C2-D2', result: 8 }, 10, { formula: 'IF(C2-D2<=F2,"REORDER","OK")', result: 'REORDER' }, ''])
 
 await wb.xlsx.writeFile(new URL('../tests/fixtures/sample-workbook.xlsx', import.meta.url).pathname)
 console.log('wrote tests/fixtures/sample-workbook.xlsx')

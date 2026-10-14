@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { toImportCounts } from './runImport'
 
 describe('toImportCounts', () => {
-  it('accepts the six counts the function returns', () => {
+  it('accepts the counts the function returns', () => {
     const counts = {
       categories: 0,
       locations: 6,
@@ -11,6 +11,8 @@ describe('toImportCounts', () => {
       assets: 11,
       accessories: 13,
       changes: 11,
+      faults: 1,
+      stock_items: 1,
     }
     expect(toImportCounts(counts)).toEqual(counts)
   })
@@ -27,6 +29,8 @@ describe('toImportCounts', () => {
         assets: '11',
         accessories: 0,
         changes: 0,
+        faults: 0,
+        stock_items: 0,
       }),
     ).toThrow(/unexpected/)
   })

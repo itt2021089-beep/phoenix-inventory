@@ -31,6 +31,11 @@ export type ChangeType =
 export type CategoryGroup = 'it' | 'facilities'
 export type LocationKind = 'room' | 'desk' | 'store' | 'other'
 export type VendorKind = 'supplier' | 'service' | 'both'
+export type FaultStatus = 'open' | 'in_progress' | 'with_vendor' | 'closed'
+export type FaultCause =
+  'wear_and_tear' | 'accident' | 'misuse' | 'power_issue' | 'manufacturing_defect' | 'unknown'
+export type ServiceJobType = 'cleaning' | 'repair' | 'service' | 'inspection' | 'installation'
+export type StockMovementType = 'received' | 'issued' | 'returned' | 'adjusted' | 'written_off'
 
 export type Profile = Omit<Tables<'profiles'>, 'role'> & { role: UserRole }
 export type Category = Tables<'categories'>

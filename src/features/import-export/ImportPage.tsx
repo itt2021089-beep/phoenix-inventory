@@ -102,7 +102,10 @@ export function ImportPage() {
           <CardContent className="space-y-3">
             <p className="text-sm">
               {done.assets} asset{done.assets === 1 ? '' : 's'}, {done.employees} people,{' '}
-              {done.accessories} accessories and {done.changes} Change Log rows are in.
+              {done.accessories} accessories, {done.changes} Change Log rows and {done.faults} fault
+              {done.faults === 1 ? '' : 's'} are in.
+              {done.stock_items > 0 &&
+                ` Opening stock was recorded for ${done.stock_items} consumable${done.stock_items === 1 ? '' : 's'}.`}
             </p>
             <p className="text-sm text-muted-foreground">
               Running this again with the same file changes nothing, so it is safe to repeat after
@@ -141,6 +144,8 @@ export function ImportPage() {
                     ['Categories', preview.counts.categories],
                     ['Locations', preview.counts.locations],
                     ['Change Log rows', preview.counts.changes],
+                    ['Faults', preview.counts.faults],
+                    ['Consumables (opening stock)', preview.counts.stock],
                   ].map(([label, n]) => (
                     <TableRow key={label}>
                       <TableCell>{label}</TableCell>

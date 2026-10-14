@@ -9,7 +9,9 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: 'bg-card text-card-foreground',
-        destructive: 'text-destructive bg-card [&>svg]:text-current',
+        // The description is muted by default; an error keeps it red too.
+        destructive:
+          'text-destructive bg-card border-destructive/40 [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90',
       },
     },
     defaultVariants: { variant: 'default' },

@@ -68,8 +68,27 @@ describe('reading a real .xlsx', () => {
     expect(payload.change_log.map((c) => c.change_no)).toEqual(['CHG-0001', 'CHG-0003'])
     expect(payload.change_log[0].to_nid).toBe('200012345678')
 
-    // Only the "imported in Phase 2" notes, no warnings.
+    // FLT-0001 keeps its number; the supplier named in the action becomes a vendor.
+    expect(payload.faults).toHaveLength(1)
+    expect(payload.faults[0]).toMatchObject({
+      fault_no: 'FLT-0001',
+      asset_tag: 'PBS-LAP-001',
+      date_reported: '2026-10-01',
+      reported_by_nid: '200012345678',
+      vendor: 'Fake Vendor',
+      cost: 0,
+      status: 'closed',
+      date_closed: '2026-10-01',
+      under_warranty: false,
+    })
+
+    // The mouse stock opens at 30 in, 22 out; the formula columns are not needed.
+    expect(payload.stock).toEqual([
+      { name: 'Optical mouse', reorder_level: 10, qty_received: 30, qty_issued: 22 },
+    ])
+    expect(counts).toMatchObject({ faults: 1, stock: 1 })
+
+    // Notes only, no warnings.
     expect(warnings.filter((w) => w.level === 'warning')).toEqual([])
-    expect(warnings.map((w) => w.message).join(' ')).toMatch(/Fault Log.*Phase 2/)
   })
 })

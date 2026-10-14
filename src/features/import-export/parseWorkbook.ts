@@ -7,8 +7,14 @@
  *
  * Privacy: a warning never contains an NID. It points at a row number instead.
  */
-import { ASSET_STATUS_LABELS, CONDITION_LABELS } from '@/lib/constants'
-import type { AssetStatus, Condition } from '@/lib/db'
+import {
+  ASSET_STATUS_LABELS,
+  CHANGE_TYPE_LABELS,
+  CONDITION_LABELS,
+  FAULT_CAUSE_LABELS,
+  FAULT_STATUS_LABELS,
+} from '@/lib/constants'
+import type { AssetStatus, Condition, FaultCause, FaultStatus } from '@/lib/db'
 import { tidyName } from '@/lib/names'
 import { isValidNid, normalizeNid } from '@/lib/nid'
 
@@ -55,6 +61,31 @@ export type ImportPayload = {
     to_text: string | null
     reason: string | null
   }[]
+  faults: {
+    fault_no: string
+    asset_tag: string
+    date_reported: string | null
+    /** Set when "Reported By" matches someone in the register; otherwise the name is kept. */
+    reported_by_nid: string | null
+    reported_by_name: string | null
+    description: string
+    action_taken: string | null
+    vendor: string | null
+    cost: number
+    status: FaultStatus
+    date_closed: string | null
+    under_warranty: boolean
+    cause: FaultCause | null
+    responsible_nid: string | null
+    remarks: string | null
+  }[]
+  /** Consumables: each becomes a stock item with two opening movements. */
+  stock: {
+    name: string
+    reorder_level: number | null
+    qty_received: number
+    qty_issued: number
+  }[]
 }
 
 export type ParseResult = {
@@ -66,6 +97,8 @@ export type ParseResult = {
     employees: number
     assets: number
     changes: number
+    faults: number
+    stock: number
   }
   /** Rows that became accessory ticks rather than assets. */
   accessoryRows: number
@@ -84,6 +117,35 @@ const byLabel = <T extends string>(labels: Record<T, string>, label: string): T 
   (Object.entries(labels) as [T, string][]).find(
     ([, l]) => l.toLowerCase() === label.trim().toLowerCase(),
   )?.[0] ?? null
+
+/** "LKR 12,500" -> 12500. Blank or unreadable -> null. */
+export function toAmount(value: string): number | null {
+  const text = clean(value).replace(/LKR|Rs\.?|,|\s/gi, '')
+  if (!text) return null
+  const n = Number(text)
+  return Number.isFinite(n) && n >= 0 ? n : null
+}
+
+/** "lanka pc" -> "Lanka PC": short words are taken to be initials. Mixed case is left alone. */
+export function tidyVendor(raw: string): string {
+  const name = clean(raw).replace(/\s+/g, ' ')
+  if (name !== name.toLowerCase() && name !== name.toUpperCase()) return name
+  return name
+    .split(' ')
+    .map((w) =>
+      w.length <= 2 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+    )
+    .join(' ')
+}
+
+/**
+ * The supplier named in an Action Taken text, as the workbook wrote it:
+ * "fix by supplier (lanka pc)" -> "lanka pc".
+ */
+export function vendorInAction(action: string): string | null {
+  const m = /\b(?:supplier|vendor|repair shop)\b[^(]*\(([^)]+)\)/i.exec(action)
+  return m ? m[1].trim() || null : null
+}
 
 /** Excel dates arrive as a Date, a serial number or text. Returns YYYY-MM-DD. */
 export function toIsoDate(value: unknown): string | null {
@@ -328,23 +390,7 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
     }
     seenChangeNos.add(no)
     const label = clean(r['Change Type'])
-    const type = byLabel(
-      {
-        received_new: 'Received (New)',
-        issued: 'Issued',
-        returned: 'Returned',
-        reassigned: 'Reassigned',
-        location_changed: 'Location Changed',
-        sent_for_repair: 'Sent for Repair',
-        back_from_repair: 'Back from Repair',
-        upgraded: 'Upgraded',
-        part_replaced: 'Part Replaced',
-        os_reinstalled: 'OS Reinstalled',
-        retired: 'Retired',
-        disposed: 'Disposed',
-      },
-      label,
-    )
+    const type = byLabel(CHANGE_TYPE_LABELS, label)
     if (!type) {
       warn(
         `Change Log ${no}: the change type "${label}" is not one we know, so the row is skipped.`,
@@ -362,8 +408,7 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
       from_location: isStore ? 'IT store' : null,
       // Where it ended up. The workbook's "To" was a person, so the row would otherwise read
       // "IT store ->" with no destination.
-      to_location:
-        type === 'issued' || type === 'reassigned' ? (placeOf.get(tag) ?? null) : null,
+      to_location: type === 'issued' || type === 'reassigned' ? (placeOf.get(tag) ?? null) : null,
       // The log used placeholders like "Travel User 1"; the register says who really holds it.
       to_nid: type === 'issued' || type === 'reassigned' ? (holderOf.get(tag) ?? null) : null,
       from_text: isStore ? null : from || null,
@@ -372,12 +417,115 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
     })
   }
 
-  for (const tab of ['Fault Log', 'Consumables']) {
-    if (sheets[tab]?.length) {
-      note(
-        `The "${tab}" tab is imported in Phase 2, with the screens that use it. Nothing is lost.`,
-      )
+  // --- Fault Log. A person's name is matched to the register; anyone else keeps the typed name.
+  const nidByName = new Map(
+    [...employees.values()].map((e) => [e.full_name.toLowerCase(), e.nid] as const),
+  )
+  const personNid = (raw: string) =>
+    raw ? (nidByName.get(tidyName(raw).toLowerCase()) ?? null) : null
+  const faults: ImportPayload['faults'] = []
+  const seenFaultNos = new Set<string>()
+  for (const [i, r] of (sheets['Fault Log'] ?? []).entries()) {
+    const no = clean(r['Fault ID'])
+    const tag = clean(r['Asset Tag'])
+    const description = clean(r['Fault / Issue'])
+    if (!no && !tag && !description) continue
+    const where = `Fault Log row ${i + 2}`
+    if (!/^FLT-\d+$/i.test(no)) {
+      warn(`${where}: the Fault ID "${no}" is not like FLT-0001, so the row is skipped.`)
+      continue
     }
+    if (seenFaultNos.has(no.toUpperCase())) {
+      warn(`${where}: ${no} appears more than once; only the first is imported.`)
+      continue
+    }
+    if (!holderOf.has(tag)) {
+      warn(`${no}: the asset ${tag || '(none)'} is not in the Asset Register, so it is skipped.`)
+      continue
+    }
+    if (!description) {
+      warn(`${no}: there is no Fault / Issue text, so it is skipped.`)
+      continue
+    }
+    seenFaultNos.add(no.toUpperCase())
+
+    const reporter = clean(r['Reported By'])
+    const reporterNid = personNid(reporter)
+    if (reporter && !reporterNid) {
+      note(`${no}: the reporter is not in the Asset Register, so the name is kept as typed.`)
+    }
+    const action = orNull(r['Action Taken'])
+    const vendorText = clean(r['Vendor']) || vendorInAction(action ?? '')
+    const dateReported = toIsoDate(r['Date Reported'])
+    let dateClosed = toIsoDate(r['Date Closed'])
+    const statusLabel = clean(r['Status'])
+    let status = byLabel(FAULT_STATUS_LABELS, statusLabel)
+    if (!status) {
+      status = dateClosed ? 'closed' : 'open'
+      if (statusLabel) {
+        warn(
+          `${no}: the status "${statusLabel}" is not one we know, so it is imported as ${FAULT_STATUS_LABELS[status]}.`,
+        )
+      }
+    }
+    if (status === 'closed' && !dateClosed) dateClosed = dateReported
+    const costText = clean(r['Cost (LKR)'])
+    const cost = toAmount(costText)
+    if (costText && cost === null) {
+      warn(`${no}: the cost "${costText}" is not a number, so it is imported as 0.`)
+    }
+    const responsible = clean(r['Responsible'])
+    const responsibleNid = personNid(responsible)
+    if (responsible && !responsibleNid) {
+      warn(`${no}: "Responsible" names someone not in the Asset Register, so it is left blank.`)
+    }
+
+    faults.push({
+      fault_no: no.toUpperCase(),
+      asset_tag: tag,
+      date_reported: dateReported,
+      reported_by_nid: reporterNid,
+      reported_by_name: reporter && !reporterNid ? tidyName(reporter) : null,
+      description,
+      action_taken: action,
+      vendor: vendorText ? tidyVendor(vendorText) : null,
+      cost: cost ?? 0,
+      status,
+      date_closed: status === 'closed' ? dateClosed : null,
+      under_warranty: /^(yes|y|true)$/i.test(clean(r['Under Warranty'])),
+      cause: byLabel(FAULT_CAUSE_LABELS, clean(r['Cause'])),
+      responsible_nid: responsibleNid,
+      remarks: orNull(r['Remarks']),
+    })
+  }
+
+  // --- Consumables: what came in and what went out become the opening balance.
+  const stock: ImportPayload['stock'] = []
+  for (const [i, r] of (sheets['Consumables'] ?? []).entries()) {
+    const raw = clean(r['Item'])
+    if (!raw) continue
+    const name = raw === raw.toLowerCase() ? raw.charAt(0).toUpperCase() + raw.slice(1) : raw
+    const received = toAmount(r['Qty Received']) ?? 0
+    const issued = toAmount(r['Qty Issued']) ?? 0
+    if (!Number.isInteger(received) || !Number.isInteger(issued)) {
+      warn(
+        `Consumables row ${i + 2} (${name}): quantities must be whole numbers, so it is skipped.`,
+      )
+      continue
+    }
+    if (issued > received) {
+      warn(
+        `Consumables row ${i + 2} (${name}): ${issued} issued but only ${received} received. Stock cannot go below 0, so it is skipped.`,
+      )
+      continue
+    }
+    note(`${name}: opening stock ${received - issued} (${received} received, ${issued} issued).`)
+    stock.push({
+      name,
+      reorder_level: toAmount(r['Reorder Level']),
+      qty_received: received,
+      qty_issued: issued,
+    })
   }
 
   const locations = [...new Set(assets.map((a) => a.location).filter((l): l is string => !!l))]
@@ -385,7 +533,15 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
     .map((name) => ({ name }))
 
   return {
-    payload: { categories, locations, employees: [...employees.values()], assets, change_log },
+    payload: {
+      categories,
+      locations,
+      employees: [...employees.values()],
+      assets,
+      change_log,
+      faults,
+      stock,
+    },
     warnings,
     counts: {
       categories: categories.length,
@@ -393,6 +549,8 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
       employees: employees.size,
       assets: assets.length,
       changes: change_log.length,
+      faults: faults.length,
+      stock: stock.length,
     },
     accessoryRows,
   }

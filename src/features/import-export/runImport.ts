@@ -10,6 +10,9 @@ export type ImportCounts = {
   assets: number
   accessories: number
   changes: number
+  faults: number
+  /** Stock items with an opening balance written by this run (0 when re-run). */
+  stock_items: number
 }
 
 const COUNT_KEYS: (keyof ImportCounts)[] = [
@@ -19,6 +22,8 @@ const COUNT_KEYS: (keyof ImportCounts)[] = [
   'assets',
   'accessories',
   'changes',
+  'faults',
+  'stock_items',
 ]
 
 /** The function returns plain JSON; this checks it really is the counts before they are shown. */
