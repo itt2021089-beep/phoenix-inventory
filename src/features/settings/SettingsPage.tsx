@@ -80,7 +80,7 @@ export function SettingsPage() {
             <>
               <p className="mb-3 text-sm text-muted-foreground">
                 Ticked when a laptop or desktop is issued. One linked to a stock item takes 1 from
-                stock when ticked at issue and puts 1 back when returned (from Phase 2).
+                stock when ticked at issue and puts 1 back when returned (see the Stock page).
               </p>
               <ListEditor
                 table="accessory_types"

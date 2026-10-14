@@ -23,6 +23,8 @@ import { ImportPage } from '@/features/import-export/ImportPage'
 import { NewServiceJobPage } from '@/features/service/NewServiceJobPage'
 import { ServiceJobPage } from '@/features/service/ServiceJobPage'
 import { ServiceListPage } from '@/features/service/ServiceListPage'
+import { StockItemPage } from '@/features/stock/StockItemPage'
+import { StockListPage } from '@/features/stock/StockListPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
@@ -71,6 +73,8 @@ export default function App() {
                 <Route path="faults/:no" element={<FaultPage />} />
                 <Route path="service" element={<ServiceListPage />} />
                 <Route path="service/:no" element={<ServiceJobPage />} />
+                <Route path="stock" element={<StockListPage />} />
+                <Route path="stock/:code" element={<StockItemPage />} />
                 <Route
                   path="*"
                   element={<PlaceholderPage title="Page not found" phase="a later phase" />}

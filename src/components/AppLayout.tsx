@@ -4,6 +4,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  Package,
   FileSpreadsheet,
   Settings,
   Users,
@@ -37,6 +38,7 @@ const NAV: NavItem[] = [
   { to: '/people', label: 'People', icon: Users },
   { to: '/faults', label: 'Faults', icon: Wrench, desktopOnly: true },
   { to: '/service', label: 'Service', icon: ClipboardList, desktopOnly: true },
+  { to: '/stock', label: 'Stock', icon: Package, desktopOnly: true },
   { to: '/export', label: 'Excel', icon: FileSpreadsheet, desktopOnly: true },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]

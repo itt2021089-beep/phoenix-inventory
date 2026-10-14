@@ -164,16 +164,29 @@ the guard-trigger check now running because DEV has issued assets.
   - [x] signed handover copy
   - [x] invoice photo on a service job
   - [x] asset page: "At issue" vs "At return" photos side by side
-- [ ] **Stock page:** list with reorder flags; receive, issue, adjust and write off.
+- [x] **Stock page** (PR D, 14/10/2026): list with reorder flags; receive, issue, adjust and write off.
+  Also: add a stock item, edit its reorder level, history per item, and Qty Received / Qty Issued
+  in the Consumables export (counted from the movements).
 - [x] Asset page: "Repair spend so far" and the service history.
 - [ ] Record the real AC job (HR room, CEO room, Sales room) as the first service job, after creating
-  the AC assets.
+  the AC assets. **Sahan does this himself** with the real rooms, vendor and invoice (open decision 5):
+  Assets → Add asset (Air Conditioner, quantity 3), Move each to its room, then Service → New
+  service job → Air Conditioner → Add all 3.
 
 **Done when:**
 - the AC job shows as one SRV job with 3 lines and next due dates
 - a fault opened on return appears in the inbox
 - issue/return photos show side by side
 - ticking "Mouse" at issue reduces the Optical mouse stock by 1
+
+**Phase 2 checks, 14/10/2026** (local copy shaped like Supabase, fake people; DEV untouched):
+- the SQL suites `rls.sql`, `actions.sql`, `import.sql`, `faults_service.sql` and `photos.sql` pass,
+  and `npm run test:rls` passes 94/94 on DEV, including the photo upload refusals
+- browser runs: the three-room AC job saves as one SRV job with 3 lines and next due dates; a fault
+  opened on return is in the inbox; At issue / At return photos sit side by side; ticking Mouse at
+  issue takes the Optical mouse stock from 9 to 8 and returning it puts it back
+- still to do on DEV by Sahan: re-import the workbook (brings FLT-0001 and the 8 mice; DEV shows 0
+  faults and 0 mice until then), and record the real AC job (above)
 
 ---
 
