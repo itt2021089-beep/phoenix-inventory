@@ -11,6 +11,9 @@ Notation used below:
 - Display numbers (`CHG-0001` etc.) come from a column default that reads a sequence. This lets the
   importer insert the existing numbers from Excel and then move the sequence past them with
   `setval`.
+- `today (Colombo)`: the Sri Lanka date, `(now() at time zone 'Asia/Colombo')::date`. The database
+  itself runs in UTC, whose date is still yesterday until 05:30 in Sri Lanka, so `current_date` is
+  never a column default (migration `colombo_dates`).
 
 ## Code lists
 
@@ -199,7 +202,7 @@ PK (asset_id, accessory_type_id)
 ```
 id                bigint identity PK
 form_no           text not null unique default 'HO-' || lpad(nextval('handover_no_seq')::text, 4, '0')
-form_date         date not null default current_date
+form_date         date not null default today (Colombo)
 purpose           text not null           -- handover_purpose
 employee_id       uuid FK employees not null  -- receiver (issue/transfer) or returner (return)
 from_employee_id  uuid FK employees           -- transfer only
@@ -214,7 +217,7 @@ created_at, created_by
 ```
 id                   bigint identity PK
 change_no            text not null unique default 'CHG-' || lpad(nextval('change_no_seq')::text, 4, '0')
-change_date          date not null default current_date
+change_date          date not null default today (Colombo)
 asset_id             uuid FK assets not null
 change_type          text not null                -- change_type
 from_employee_id     uuid FK employees
@@ -236,7 +239,7 @@ created_at, created_by
 id                       bigint identity PK
 fault_no                 text not null unique default 'FLT-' || lpad(nextval('fault_no_seq')::text, 4, '0')
 asset_id                 uuid FK assets not null
-date_reported            date not null default current_date
+date_reported            date not null default today (Colombo)
 source                   text not null default 'admin'  -- fault_source
 reported_by_employee_id  uuid FK employees
 reported_by_name         text                 -- as typed on the public QR form
@@ -264,7 +267,7 @@ id             bigint identity PK
 job_no         text not null unique default 'SRV-' || lpad(nextval('service_no_seq')::text, 4, '0')
 vendor_id      bigint FK vendors
 job_type       text not null              -- service_job_type
-service_date   date not null
+service_date   date not null default today (Colombo)
 invoice_no     text
 invoice_total  numeric(12,2)              -- as printed on the invoice; UI warns if lines don't add up
 notes          text
@@ -286,7 +289,7 @@ notes          text
 ```
 id             bigint identity PK
 stock_item_id  bigint FK stock_items not null
-movement_date  date not null default current_date
+movement_date  date not null default today (Colombo)
 movement_type  text not null              -- stock_movement_type
 qty_change     int  not null              -- check <> 0; received/returned > 0; issued/written_off < 0; adjusted either way
 employee_id    uuid FK employees
@@ -353,6 +356,12 @@ Every write function except the public ones:
 - calls `is_admin()` first and raises `not allowed` otherwise
 - runs as a single transaction
 - sets `app.via_rpc` before touching asset movement columns, and restores it before returning
+
+**Dates.** A function that falls back to `current_date` (a date left out means today) runs with
+`set timezone = 'Asia/Colombo'`, so that today is the Sri Lanka date. The trigger function
+`fault_log_fill` (closing without a date means today) does too. `create or replace` drops a
+setting it does not repeat, so a new version of such a function must keep the line;
+`supabase/tests/dates.sql` fails otherwise.
 
 **Execute grants.** New functions in `public` are not callable by `anon` by default: migration
 `revoke_anon_function_execute` switched off both the Supabase default grant to `anon` and the

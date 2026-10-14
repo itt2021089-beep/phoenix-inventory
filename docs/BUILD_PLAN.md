@@ -342,6 +342,18 @@ These three need Sahan (PROD, the GitHub secrets and the accounts), so they are 
   new audit tests need the migration on DEV (`npx supabase db push`) before `npm run test:rls`
   passes there.
 
+**Pre-go-live check, 15/10/2026** (fresh local Supabase in Docker, fake people; DEV read-only):
+- lint, 171 unit tests and the build pass; `npm test` no longer needs `.env.local`, so CI's test
+  step passes too; `npm run smoke` on DEV is "All clear"; `npm run test:rls` on DEV passes 95
+  (the 31 no-profile checks need `TEST_NOPROFILE_*`)
+- in the browser: import, add, issue with Charger + Mouse (stock 8 -> 7, HO form correct),
+  transfer, a logged-out QR report, and a viewer who sees everything and changes nothing
+- found and fixed: a QR report made between midnight and 05:30 was dated the day before, because
+  the database runs in UTC. Migration `colombo_dates` makes every date the database fills in the
+  Colombo date; the new suite `supabase/tests/dates.sql` checks it at any hour. All 8 SQL suites
+  pass, including at 05:00 Colombo time.
+- the SQL suites use up CHG/FLT/HO numbers even though they roll back: never run them on PROD
+
 ### Later (not scheduled)
 - Email reminders through custom SMTP, using the company mailbox.
 - Stock-take mode: walk the office scanning labels; the app lists what wasn't scanned.

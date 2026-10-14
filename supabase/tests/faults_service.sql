@@ -80,7 +80,7 @@ begin
   update fault_log set cause = 'wear_and_tear', responsible_employee_id = null,
     action_taken = 'Replaced keyboard', cost = 4500, status = 'closed' where id = f1;
   select * into r from fault_log where id = f1;
-  perform pg_temp.check(r.date_closed = current_date and r.updated_at is not null, 'closing dates it today');
+  perform pg_temp.check(r.date_closed = (now() at time zone 'Asia/Colombo')::date and r.updated_at is not null, 'closing dates it today');
   perform pg_temp.check(r.cost = 4500, 'a fault fixed on its own keeps its cost');
 
   -- send_for_repair: In Use is refused; Faulty goes Under Repair with the vendor.
