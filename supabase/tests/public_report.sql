@@ -141,6 +141,11 @@ begin
   perform submit_fault_report('PBS-LAP-001', 'Kamal', 'Screen flickers 3');
   perform pg_temp.expect_error($q$select submit_fault_report('PBS-LAP-001', 'Kamal', 'Screen flickers 4')$q$,
     'This item has already been reported several times%', 'a 4th report on one asset in an hour is refused');
+  begin
+    perform submit_fault_report('PBS-LAP-001', 'Kamal', 'Screen flickers 4');
+  exception when others then
+    perform pg_temp.check(sqlstate = 'PT429', 'a rate-limited report carries PT429, which PostgREST answers with HTTP 429');
+  end;
   reset role;
   perform pg_temp.check((select count(*) from fault_log where source = 'qr' and asset_id = l1) = 3, 'so only 3 were filed');
   -- Faults Sahan enters himself do not count against the limit.

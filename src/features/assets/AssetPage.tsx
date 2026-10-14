@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, Pencil } from 'lucide-react'
+import { ArrowLeft, Copy, Pencil, QrCode } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
@@ -90,6 +90,11 @@ export function AssetPage() {
               <Button variant="outline" size="sm" asChild>
                 <Link to={`/assets/${a.asset_tag}/edit`}>
                   <Pencil /> Edit
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/print/labels?tags=${encodeURIComponent(a.asset_tag)}`}>
+                  <QrCode /> Print label
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild>

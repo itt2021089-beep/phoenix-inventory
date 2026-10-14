@@ -1274,6 +1274,15 @@ export type Database = {
         Args: { p_asset_id: string; p_date?: string; p_reason: string }
         Returns: undefined
       }
+      get_public_asset: {
+        Args: { p_tag: string }
+        Returns: {
+          asset_tag: string
+          category: string
+          make: string
+          model: string
+        }[]
+      }
       import_workbook: { Args: { p_payload: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_viewer_or_admin: { Args: never; Returns: boolean }
@@ -1299,6 +1308,7 @@ export type Database = {
         Returns: undefined
       }
       next_asset_tag: { Args: { p_category_id: number }; Returns: string }
+      ping: { Args: never; Returns: number }
       record_service_job: {
         Args: { p_header: Json; p_lines: Json }
         Returns: string
@@ -1328,6 +1338,15 @@ export type Database = {
           p_vendor_id?: number
         }
         Returns: undefined
+      }
+      submit_fault_report: {
+        Args: {
+          p_description: string
+          p_photo_path?: string
+          p_reporter_name: string
+          p_tag: string
+        }
+        Returns: string
       }
       transfer_assets: {
         Args: {

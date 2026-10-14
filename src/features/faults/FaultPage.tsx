@@ -27,11 +27,13 @@ import {
   reporterName,
   useBackFromRepair,
   useFault,
+  useMatchReporter,
   useSaveFinding,
   useSendForRepair,
   useUpdateFault,
 } from './api'
 import { FaultStatusBadge } from './FaultStatusBadge'
+import { suggestPeople } from './filters'
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   if (children === null || children === undefined || children === '') return null
@@ -114,6 +116,10 @@ export function FaultPage() {
           </dl>
         </CardContent>
       </Card>
+
+      {isAdmin && f.source === 'qr' && !f.reported_by_employee_id && f.reported_by_name && (
+        <MatchReporter fault={f} />
+      )}
 
       {isAdmin ? (
         <FaultEditor key={`${f.id}-${f.updated_at}`} fault={f} />
@@ -604,6 +610,77 @@ function FaultPhotos({ fault: f, isAdmin }: { fault: FaultRow; isAdmin: boolean 
             }}
             label="Add photos of the damage"
           />
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/**
+ * A QR report carries only the name typed on the phone. If it is someone in the register, one
+ * click records who it was; the typed name stays on the fault. This is the reporter only: who
+ * held the item and who was responsible are separate facts (CLAUDE.md, rule 8).
+ */
+function MatchReporter({ fault: f }: { fault: FaultRow }) {
+  const people = usePeople()
+  const match = useMatchReporter()
+  const [other, setOther] = useState('')
+  const suggestions = suggestPeople(f.reported_by_name ?? '', people.data ?? [])
+  const active = (people.data ?? []).filter((p) => p.status === 'active')
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Who reported it?</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm">
+          The staff member typed <span className="font-medium">{f.reported_by_name}</span>.
+        </p>
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((p) => (
+              <Button
+                key={p.id}
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={match.isPending}
+                onClick={() => match.mutate({ id: f.id, employeeId: p.id })}
+              >
+                Yes, {p.full_name}
+              </Button>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap items-end gap-2">
+          <Field label="Someone else" htmlFor="match-person" className="min-w-48 flex-1">
+            <NativeSelect
+              id="match-person"
+              value={other}
+              onChange={(e) => setOther(e.target.value)}
+            >
+              <option value="">Pick a person</option>
+              {active.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.full_name}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!other || match.isPending}
+            onClick={() => match.mutate({ id: f.id, employeeId: other })}
+          >
+            Match
+          </Button>
+        </div>
+        {match.error && (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage(match.error)}</AlertDescription>
+          </Alert>
         )}
       </CardContent>
     </Card>

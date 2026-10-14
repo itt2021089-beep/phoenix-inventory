@@ -5,7 +5,7 @@ import { type FaultRow, reporterName } from './api'
 
 export type FaultFilters = {
   q: string
-  /** 'open' (default: not Closed), 'closed', 'all', or one status code. */
+  /** 'open' (default: not Closed), 'closed', 'all', 'new_qr', or one status code. */
   status: string
   /** A category name, or ''. */
   category: string
@@ -18,9 +18,11 @@ const norm = (s: string | null | undefined) => (s ?? '').toLowerCase().replace(/
 export function filterFaults(rows: FaultRow[], f: FaultFilters): FaultRow[] {
   const words = norm(f.q).split(' ').filter(Boolean)
   return rows.filter((r) => {
+    if (f.status === 'new_qr' && !isNewFromQr(r)) return false
     if (f.status === 'open' && r.status === 'closed') return false
     if (f.status === 'closed' && r.status !== 'closed') return false
-    if (!['open', 'closed', 'all'].includes(f.status) && r.status !== f.status) return false
+    if (!['open', 'closed', 'all', 'new_qr'].includes(f.status) && r.status !== f.status)
+      return false
     if (f.category && r.asset?.category?.name !== f.category) return false
     if (words.length) {
       const hay = norm(
@@ -40,6 +42,36 @@ export function filterFaults(rows: FaultRow[], f: FaultFilters): FaultRow[] {
     }
     return true
   })
+}
+
+/** A report from a QR label that nobody has looked at yet: still Open and never edited. */
+export const isNewFromQr = (f: Pick<FaultRow, 'source' | 'status' | 'updated_at'>) =>
+  f.source === 'qr' && f.status === 'open' && f.updated_at === null
+
+type Candidate = { id: string; full_name: string; status: string }
+
+/**
+ * People a typed name probably means, best first, for "is this Kamal Perera?" in one click.
+ * An exact name beats every word of the typed name appearing in the person's name; a single
+ * typed first name matches people whose first name it is. People who have left are not offered.
+ */
+export function suggestPeople<T extends Candidate>(typed: string, people: T[], limit = 3): T[] {
+  const words = norm(typed).split(' ').filter(Boolean)
+  if (!words.length) return []
+  const scored = people
+    .filter((p) => p.status === 'active')
+    .map((p) => {
+      const full = norm(p.full_name)
+      const parts = full.split(' ')
+      let score = 0
+      if (full === words.join(' ')) score = 3
+      else if (words.every((w) => parts.includes(w))) score = 2
+      else if (words.length === 1 && parts[0] === words[0]) score = 1
+      return { p, score }
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score || a.p.full_name.localeCompare(b.p.full_name))
+  return scored.slice(0, limit).map((x) => x.p)
 }
 
 /** The Excel workbook's Fault Log columns (docs/BUILD_PLAN.md, Spec: Excel export). */
