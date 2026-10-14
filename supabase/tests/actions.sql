@@ -1,4 +1,5 @@
--- Behaviour tests for the Phase 1 asset actions, guard trigger and views.
+-- Behaviour tests for the asset actions, guard trigger and views (Phase 1), and the stock moves
+-- and faults that Issue and Return make (Phase 2).
 --
 --   psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/actions.sql
 --
@@ -52,13 +53,14 @@ declare
   hst  smallint := (select id from categories where tag_prefix = 'HST');
   charger smallint := (select id from accessory_types where name = 'Charger');
   mouse   smallint := (select id from accessory_types where name = 'Mouse');
+  mouse_stock bigint := (select stock_item_id from accessory_types where name = 'Mouse');
   store   smallint := (select id from locations where name = 'IT store');
   travel  smallint := (select id from departments where name = 'Travel');
   sales   smallint := (select id from departments where name = 'Sales');
   desk1 smallint; desk2 smallint;
   e1 uuid; e2 uuid;
   tags text[]; l1 uuid; l2 uuid; h1 uuid;
-  form text; r record; n int;
+  form text; r record; n int; moves int;
 begin
   perform pg_temp.act_as(admin_id);
 
@@ -118,6 +120,20 @@ begin
   update assets set notes = 'edited directly' where id = l1;
   perform pg_temp.check((select notes from assets where id = l1) = 'edited directly', 'non-movement columns are editable');
 
+  -- Stock: the quantity moves only through stock_movements, and never below 0.
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 0, 'mice start at 0');
+  insert into stock_movements (stock_item_id, movement_type, qty_change, reference)
+  values (mouse_stock, 'received', 3, 'Test delivery');
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 3, 'receive adds to stock');
+  perform pg_temp.expect_error(format($q$update stock_items set qty_on_hand = 50 where id = %s$q$, mouse_stock),
+    '%only through a movement%', 'direct quantity edit is refused');
+  perform pg_temp.expect_error($q$insert into stock_items (name, qty_on_hand) values ('Test cable', 5)$q$,
+    '%starts at 0%', 'a new stock item starts at 0');
+  perform pg_temp.expect_error(format($q$insert into stock_movements (stock_item_id, movement_type, qty_change) values (%s, 'issued', 2)$q$, mouse_stock),
+    '%stock_movements_sign%', 'issued must be negative');
+  perform pg_temp.expect_error($q$update stock_movements set qty_change = 9$q$, '%permission denied%', 'movements never change');
+  perform pg_temp.expect_error($q$delete from stock_movements$q$, '%permission denied%', 'movements are never deleted');
+
   -- issue_assets
   form := issue_assets(e1, jsonb_build_array(
             jsonb_build_object('asset_id', l1, 'condition', 'good', 'accessory_type_ids', jsonb_build_array(charger, mouse)),
@@ -138,6 +154,13 @@ begin
   perform pg_temp.check(r.from_location_id = store and r.to_location_id = desk1, 'change row has from/to location');
   perform pg_temp.check((select count(*) from change_log c join handover_forms h on h.id = c.handover_form_id
                          where h.form_no = form) = 2, 'both items on the same form');
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 2,
+    'issuing with a Mouse takes 1 from stock');
+  select * into r from stock_movements where movement_type = 'issued';
+  perform pg_temp.check(r.qty_change = -1 and r.employee_id = e1 and r.department_id = travel
+    and r.reference = 'Issued with PBS-LAP-001'
+    and r.change_log_id = (select id from change_log where asset_id = l1 and change_type = 'issued'),
+    'the stock movement points at the Issued change row');
   perform pg_temp.expect_error(format($q$select issue_assets(%L, jsonb_build_array(jsonb_build_object('asset_id', %L)))$q$, e2, l1),
     '%is not Spare%', 'cannot issue an asset that is not Spare');
 
@@ -151,6 +174,7 @@ begin
   perform pg_temp.check(r.assigned_employee_id = e2 and r.department_id = sales and r.location_id = desk2,
     'transfer: person, department and desk follow');
   perform pg_temp.check((select count(*) from asset_accessories where asset_id = l1) = 2, 'transfer keeps accessories');
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 2, 'transfer moves no stock');
   perform pg_temp.check((select from_employee_id from handover_forms where form_no = form) = e1, 'transfer form has from');
   perform pg_temp.expect_error(format($q$select transfer_assets(%L, %L, array[%L]::uuid[])$q$, e1, e2, l1),
     '%is not held by%', 'cannot transfer what they do not hold');
@@ -171,6 +195,11 @@ begin
   select * into r from change_log where asset_id = l1 and change_type = 'returned';
   perform pg_temp.check(r.from_employee_id = e2 and r.accessories = array['Charger', 'Mouse'], 'returned row');
   perform pg_temp.check((select return_condition from handover_forms where form_no = form) = 'good', 'return form');
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 3,
+    'a returned Mouse goes back into stock');
+  perform pg_temp.check((select change_log_id from stock_movements where movement_type = 'returned') = r.id,
+    'the stock movement points at the Returned change row');
+  perform pg_temp.check(not exists (select 1 from fault_log), 'a return with nothing wrong opens no fault');
 
   -- Missing accessories come off the asset and are recorded.
   form := issue_assets(e2, jsonb_build_array(jsonb_build_object('asset_id', l1, 'accessory_type_ids', jsonb_build_array(charger))));
@@ -180,13 +209,49 @@ begin
             'fault_description', 'Screen flickers')));
   perform pg_temp.check((select count(*) from asset_accessories where asset_id = l1) = 0, 'missing charger removed');
   select * into r from change_log where asset_id = l1 and change_type = 'returned' order by id desc limit 1;
-  perform pg_temp.check(r.accessories_missing = array['Charger'] and r.reason like '%Screen flickers%',
-    'missing accessories and fault text recorded');
+  perform pg_temp.check(r.accessories_missing = array['Charger'] and r.reason ~ '^FLT-[0-9]{4}: Screen flickers$',
+    'missing accessories and fault number recorded');
+  select * into r from fault_log where asset_id = l1;
+  perform pg_temp.check(r.description = 'Screen flickers' and r.status = 'open' and r.date_reported = current_date,
+    'return opens a fault');
+  perform pg_temp.check(r.holder_employee_id = e2 and r.reported_by_employee_id = e2,
+    'the fault names who held it and who reported it');
   perform pg_temp.check((select status from assets where id = l1) = 'faulty', 'returned as Faulty');
   perform pg_temp.expect_error(format($q$select return_assets(jsonb_build_array(jsonb_build_object('asset_id', %L, 'next_status', 'retired')))$q$, h1),
     '%must be Spare, Under Repair or Faulty%', 'return cannot retire');
 
-  -- move_asset
+  -- Stock: an accessory still with an asset is not counted out twice; a missing one never comes back.
+  perform issue_assets(e2, jsonb_build_array(jsonb_build_object('asset_id', l2, 'accessory_type_ids', jsonb_build_array(mouse))));
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 2, 'issue l2 with a Mouse');
+  -- Returned without ticking the Mouse either way: it stays with the laptop.
+  perform return_assets(jsonb_build_array(jsonb_build_object('asset_id', l2)));
+  perform pg_temp.check(exists (select 1 from asset_accessories where asset_id = l2 and accessory_type_id = mouse),
+    'an unticked Mouse stays with the asset');
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 2, 'so stock does not change');
+  select count(*) into moves from stock_movements;
+  perform issue_assets(e2, jsonb_build_array(jsonb_build_object('asset_id', l2, 'accessory_type_ids', jsonb_build_array(mouse))));
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 2
+    and (select count(*) from stock_movements) = moves, 're-issuing with the same Mouse takes nothing more');
+  perform return_assets(jsonb_build_array(jsonb_build_object('asset_id', l2, 'accessories_missing', jsonb_build_array(mouse))));
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 2
+    and (select count(*) from stock_movements) = moves, 'a missing Mouse puts nothing back');
+
+  -- Stock never below 0: Issue refuses, says why, and saves nothing.
+  insert into stock_movements (stock_item_id, movement_type, qty_change, notes)
+  values (mouse_stock, 'written_off', -2, 'Test: broken mice');
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 0, 'write-off takes stock to 0');
+  select count(*) into n from handover_forms;
+  perform pg_temp.expect_error(format($q$select issue_assets(%L, jsonb_build_array(jsonb_build_object('asset_id', %L, 'accessory_type_ids', jsonb_build_array(%s))), null, null, null, true)$q$, e2, l2, mouse),
+    'Optical mouse stock is 0. Untick Mouse, or receive stock first.', 'issue refuses a Mouse when there are none');
+  perform pg_temp.check((select status from assets where id = l2) = 'spare'
+    and (select count(*) from handover_forms) = n
+    and (select count(*) from change_log where asset_id = l2 and change_type = 'issued') = 2,
+    'a refused issue saves nothing');
+  perform pg_temp.expect_error(format($q$insert into stock_movements (stock_item_id, movement_type, qty_change) values (%s, 'written_off', -1)$q$, mouse_stock),
+    'Optical mouse stock is 0, so 1 cannot be taken out', 'no movement takes stock below 0');
+  perform pg_temp.check((select qty_on_hand from stock_items where id = mouse_stock) = 0
+    and (select sum(qty_change) from stock_movements where stock_item_id = mouse_stock) = 0,
+    'quantity always equals the sum of its movements');
   perform move_asset(l2, desk1, null, 'Shared desk');
   select * into r from change_log where asset_id = l2 and change_type = 'location_changed';
   perform pg_temp.check(r.to_location_id = desk1 and r.to_text = 'Common', 'move: location and department recorded');
@@ -232,6 +297,12 @@ begin
   perform pg_temp.act_as(viewer_id);
   perform pg_temp.check((select count(*) from assets) = 3, 'viewer reads assets');
   perform pg_temp.check((select count(*) from change_log) > 0, 'viewer reads the change log');
+  perform pg_temp.check((select count(*) from stock_movements) > 0, 'viewer reads stock movements');
+  perform pg_temp.check((select count(*) from fault_log) = 1, 'viewer reads faults');
+  perform pg_temp.expect_error(format($q$insert into stock_movements (stock_item_id, movement_type, qty_change) values (%s, 'received', 1)$q$, mouse_stock),
+    'not allowed', 'viewer cannot move stock');
+  perform pg_temp.expect_error(format($q$insert into fault_log (asset_id, description) values (%L, 'x')$q$, h1),
+    '%row-level security%', 'viewer cannot open a fault');
   perform pg_temp.expect_error(format($q$select add_assets(%s::smallint, 1)$q$, lap), 'not allowed', 'viewer add_assets');
   perform pg_temp.expect_error(format($q$select next_asset_tag(%s::smallint)$q$, lap), 'not allowed', 'viewer next_asset_tag');
   perform pg_temp.expect_error(format($q$select issue_assets(%L, '[]')$q$, e2), 'not allowed', 'viewer issue_assets');

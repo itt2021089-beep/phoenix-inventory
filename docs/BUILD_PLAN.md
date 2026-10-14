@@ -140,6 +140,8 @@ the guard-trigger check now running because DEV has issued assets.
 
 - [ ] Migration `stock_movements` plus its trigger. Turn on the accessory → stock link in issue and
   return.
+  - Stock never goes below 0: an issue that would do so is refused with the reason ("Optical mouse
+    stock is 0. Untick Mouse, or receive stock first"), and nothing is saved (Sahan, 14/10/2026).
 - [ ] Import the workbook's Fault Log tab and the Consumables opening movements (deferred from
   Phase 1), extending `import_workbook`.
 - [ ] Migration `faults_and_service`: fault_log, service_jobs, service_lines and their RPCs
@@ -280,7 +282,7 @@ uploaded on the Import page.
 | ↳ Notes (laptops) | The words charger, mouse, mouse pad and bag become accessory ticks. The remaining detail goes to `accessories_note` (for example "Charger: Lenovo 65W" → Charger ticked + note "Lenovo 65W"). Any other text goes to `notes`. |
 | ↳ Specification | `specification` |
 | **Change Log** | Keep the CHG numbers. "IT Store" in From becomes `from_location` = IT store. **To** (e.g. "Travel User 1") is resolved to the asset's current assignee in the Asset Register, because the register is the truth and the log used placeholders. Empty Handover Form No becomes null. |
-| **Fault Log** | Keep the FLT numbers. "fix by supplier (lanka pc)" → create vendor "Lanka PC", link it, and keep the text as `action_taken`. Cost 0, status Closed, date closed. Ask Sahan about `under_warranty` (open decision 3). |
+| **Fault Log** | Keep the FLT numbers. "fix by supplier (lanka pc)" → create vendor "Lanka PC", link it, and keep the text as `action_taken`. Cost 0, status Closed, date closed. `under_warranty` = false (Sahan, 14/10/2026). |
 | **Consumables** | `MOU-0001` "optical mouse" → stock item `CON-001` "Optical mouse" with reorder level 10. Two movements: received 30 and issued 22 (reference "Opening balance from Excel"). Link accessory "Mouse" to it. |
 | **After import** | Each category's `next_tag_number` = highest imported number + 1. Move the CHG and FLT sequences past the highest imported numbers with `setval`. |
 
