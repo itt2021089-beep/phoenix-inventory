@@ -546,6 +546,155 @@ export type Database = {
           },
         ]
       }
+      fault_log: {
+        Row: {
+          action_taken: string | null
+          asset_id: string
+          cause: string | null
+          cost: number
+          created_at: string
+          created_by: string | null
+          date_closed: string | null
+          date_reported: string
+          description: string
+          fault_no: string
+          finding_notes: string | null
+          holder_employee_id: string | null
+          id: number
+          remarks: string | null
+          reported_by_employee_id: string | null
+          reported_by_name: string | null
+          responsible_employee_id: string | null
+          service_line_id: number | null
+          source: string
+          status: string
+          under_warranty: boolean
+          updated_at: string | null
+          vendor_id: number | null
+        }
+        Insert: {
+          action_taken?: string | null
+          asset_id: string
+          cause?: string | null
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          date_closed?: string | null
+          date_reported?: string
+          description: string
+          fault_no?: string
+          finding_notes?: string | null
+          holder_employee_id?: string | null
+          id?: never
+          remarks?: string | null
+          reported_by_employee_id?: string | null
+          reported_by_name?: string | null
+          responsible_employee_id?: string | null
+          service_line_id?: number | null
+          source?: string
+          status?: string
+          under_warranty?: boolean
+          updated_at?: string | null
+          vendor_id?: number | null
+        }
+        Update: {
+          action_taken?: string | null
+          asset_id?: string
+          cause?: string | null
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          date_closed?: string | null
+          date_reported?: string
+          description?: string
+          fault_no?: string
+          finding_notes?: string | null
+          holder_employee_id?: string | null
+          id?: never
+          remarks?: string | null
+          reported_by_employee_id?: string | null
+          reported_by_name?: string | null
+          responsible_employee_id?: string | null
+          service_line_id?: number | null
+          source?: string
+          status?: string
+          under_warranty?: boolean
+          updated_at?: string | null
+          vendor_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fault_log_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fault_log_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_holdings"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "fault_log_holder_employee_id_fkey"
+            columns: ["holder_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fault_log_holder_employee_id_fkey"
+            columns: ["holder_employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_holdings"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "fault_log_reported_by_employee_id_fkey"
+            columns: ["reported_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fault_log_reported_by_employee_id_fkey"
+            columns: ["reported_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_holdings"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "fault_log_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fault_log_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_holdings"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "fault_log_service_line_id_fkey"
+            columns: ["service_line_id"]
+            isOneToOne: false
+            referencedRelation: "service_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fault_log_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       handover_forms: {
         Row: {
           created_at: string
@@ -641,6 +790,36 @@ export type Database = {
         }
         Relationships: []
       }
+      photos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          id: number
+          kind: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: never
+          kind: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: never
+          kind?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -677,6 +856,105 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_employee_holdings"
             referencedColumns: ["employee_id"]
+          },
+        ]
+      }
+      service_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: number
+          invoice_no: string | null
+          invoice_total: number | null
+          job_no: string
+          job_type: string
+          notes: string | null
+          service_date: string
+          vendor_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          invoice_no?: string | null
+          invoice_total?: number | null
+          job_no?: string
+          job_type: string
+          notes?: string | null
+          service_date?: string
+          vendor_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          invoice_no?: string | null
+          invoice_total?: number | null
+          job_no?: string
+          job_type?: string
+          notes?: string | null
+          service_date?: string
+          vendor_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_jobs_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_lines: {
+        Row: {
+          asset_id: string
+          cost: number
+          id: number
+          job_id: number
+          next_due_date: string | null
+          notes: string | null
+          work_done: string
+        }
+        Insert: {
+          asset_id: string
+          cost?: number
+          id?: never
+          job_id: number
+          next_due_date?: string | null
+          notes?: string | null
+          work_done: string
+        }
+        Update: {
+          asset_id?: string
+          cost?: number
+          id?: never
+          job_id?: number
+          next_due_date?: string | null
+          notes?: string | null
+          work_done?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_holdings"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "service_lines_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "service_jobs"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -735,6 +1013,107 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          change_log_id: number | null
+          created_at: string
+          created_by: string | null
+          department_id: number | null
+          employee_id: string | null
+          id: number
+          movement_date: string
+          movement_type: string
+          notes: string | null
+          qty_change: number
+          reference: string | null
+          stock_item_id: number
+          unit_cost: number | null
+          vendor_id: number | null
+        }
+        Insert: {
+          change_log_id?: number | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: number | null
+          employee_id?: string | null
+          id?: never
+          movement_date?: string
+          movement_type: string
+          notes?: string | null
+          qty_change: number
+          reference?: string | null
+          stock_item_id: number
+          unit_cost?: number | null
+          vendor_id?: number | null
+        }
+        Update: {
+          change_log_id?: number | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: number | null
+          employee_id?: string | null
+          id?: never
+          movement_date?: string
+          movement_type?: string
+          notes?: string | null
+          qty_change?: number
+          reference?: string | null
+          stock_item_id?: number
+          unit_cost?: number | null
+          vendor_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_change_log_id_fkey"
+            columns: ["change_log_id"]
+            isOneToOne: false
+            referencedRelation: "change_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_department_summary"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_holdings"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -837,6 +1216,27 @@ export type Database = {
     }
     Functions: {
       _accessory_names: { Args: { p_ids: number[] }; Returns: string[] }
+      _accessory_stock_back: {
+        Args: {
+          p_accessory_type_id: number
+          p_change_log_id: number
+          p_date: string
+          p_employee_id: string
+          p_reference: string
+        }
+        Returns: undefined
+      }
+      _accessory_stock_out: {
+        Args: {
+          p_accessory_type_id: number
+          p_change_log_id: number
+          p_date: string
+          p_department_id: number
+          p_employee_id: string
+          p_reference: string
+        }
+        Returns: undefined
+      }
       _allow_asset_moves: { Args: never; Returns: string }
       _end_of_life: {
         Args: {
@@ -859,6 +1259,16 @@ export type Database = {
           p_serials?: string[]
         }
         Returns: string[]
+      }
+      back_from_repair: {
+        Args: {
+          p_asset_id: string
+          p_condition: string
+          p_date?: string
+          p_next_status?: string
+          p_reason?: string
+        }
+        Returns: undefined
       }
       dispose_asset: {
         Args: { p_asset_id: string; p_date?: string; p_reason: string }
@@ -889,6 +1299,10 @@ export type Database = {
         Returns: undefined
       }
       next_asset_tag: { Args: { p_category_id: number }; Returns: string }
+      record_service_job: {
+        Args: { p_header: Json; p_lines: Json }
+        Returns: string
+      }
       retire_asset: {
         Args: { p_asset_id: string; p_date?: string; p_reason: string }
         Returns: undefined
@@ -904,6 +1318,16 @@ export type Database = {
           p_return_date?: string
         }
         Returns: string
+      }
+      send_for_repair: {
+        Args: {
+          p_asset_id: string
+          p_date?: string
+          p_fault_id?: number
+          p_reason?: string
+          p_vendor_id?: number
+        }
+        Returns: undefined
       }
       transfer_assets: {
         Args: {
