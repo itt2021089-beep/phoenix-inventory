@@ -332,7 +332,7 @@ seed:
 -- whole numbers from 1 up to 1000 / 100 / 120 / 365 / 1000 / 10000 respectively.
 ```
 
-### audit_log (append-only)
+### audit_log (append-only, admin read only)
 ```
 id          bigint identity PK
 table_name  text not null
@@ -405,7 +405,8 @@ in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the 
 
 | Object | admin | viewer | anon (logged out) |
 |---|---|---|---|
-| select on all tables and views | ✅ | ✅ | ❌ |
+| select on all tables and views (except `audit_log`) | ✅ | ✅ | ❌ |
+| select on `audit_log` | ✅ | ❌ (it holds before/after copies of rows, NIDs included; policy `audit_log_admin_read`, Phase 5) | ❌ |
 | insert / update on lookups, employees, assets (non-movement columns), faults, service, stock | ✅ (assets: update only; new assets come from `add_assets`) | ❌ | ❌ |
 | asset movement columns | only through the RPCs | ❌ | ❌ |
 | delete | only unused lookup rows (location, vendor, accessory type) | ❌ | ❌ |

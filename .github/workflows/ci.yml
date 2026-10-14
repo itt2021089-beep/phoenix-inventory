@@ -1,0 +1,31 @@
+# Lint, test and build on every pull request and every push to main: the same three commands
+# as CLAUDE.md. Cloudflare Pages deploys main separately; this catches a broken build first.
+name: Checks
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - name: Build
+        # The build needs the two public names to exist; the values are not used by lint or tests.
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_build_only
+        run: npm run build

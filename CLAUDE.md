@@ -50,6 +50,8 @@ npx supabase link --project-ref <ref>      # once per project
 npx supabase migration new <name>          # creates supabase/migrations/<timestamp>_<name>.sql
 npx supabase db push                       # apply new migrations to the linked project
 npm run gen:types                          # regenerate src/lib/database.types.ts after a db push
+npm run smoke                              # read-only check of a live project as a logged-out visitor
+npm run backup                             # encrypted dump, needs SUPABASE_DB_URL + BACKUP_PASSPHRASE (docs/RESTORE.md)
 ```
 
 - `.env.local` (gitignored) holds `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` and

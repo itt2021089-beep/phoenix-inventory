@@ -17,6 +17,10 @@ const CONSTRAINT_MESSAGES: Record<string, string> = {
 export function errorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message: unknown }).message)
+    // The browser's words for "no connection" mean nothing to most people.
+    if (/failed to fetch|networkerror|load failed|network request failed/i.test(message)) {
+      return 'Could not reach the server. Check the internet connection and try again.'
+    }
     const constraint = /unique constraint "([^"]+)"/.exec(message)?.[1]
     return (constraint && CONSTRAINT_MESSAGES[constraint]) || message
   }

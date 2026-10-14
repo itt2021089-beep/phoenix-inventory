@@ -280,29 +280,67 @@ refused):
 
 ## Phase 5: Hardening and go-live
 
-- [ ] `.github/workflows/keepalive.yml`:
+- [x] `.github/workflows/keepalive.yml`:
   - every 3 days, call `ping()` with the publishable key
   - secrets `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`
-- [ ] `.github/workflows/backup.yml`:
+- [x] `.github/workflows/backup.yml`:
   - weekly `pg_dump` of PROD (secret `SUPABASE_DB_URL`)
   - encrypt with `gpg --symmetric` (secret `BACKUP_PASSPHRASE`)
   - upload as a workflow artifact with 90-day retention
   - photos are not included; say so in `docs/RESTORE.md`, together with the restore steps
-- [ ] Audit log viewer (admin only).
-- [ ] Loading, empty and error states on every page. Install-as-app tested on a Windows laptop
-  (Chrome or Edge) and an Android phone.
-- [ ] **Go-live:**
+- [x] Audit log viewer (admin only): `/audit`, with filters, before/after detail, paging and export.
+  The log is now readable by the admin only (migration `audit_log_admin_only`), because its rows
+  hold copies of NIDs.
+- [x] Loading, empty and error states on every page (an error boundary for crashes, a plain "could
+  not reach the server" for a lost connection).
+- [ ] Install-as-app tested on a Windows laptop (Chrome or Edge) and an Android phone. **Sahan:**
+  the manifest, icons and service worker are checked by script (below); the real devices are not.
+- [ ] **Go-live** (all touch PROD, so Sahan does them; step by step in `docs/GO_LIVE.md`):
   - [ ] push the migrations to PROD
   - [ ] import the real workbook into PROD
   - [ ] create the boss and HR viewer accounts
   - [ ] switch the Cloudflare env vars to PROD
-- [ ] `docs/USER_GUIDE.md`: one page for the boss and HR (log in, read the dashboard, print a
+- [x] `docs/USER_GUIDE.md`: one page for the boss and HR (log in, read the dashboard, print a
   clearance sheet).
+- [x] Also added: `docs/RESTORE.md`, `docs/GO_LIVE.md`, `npm run smoke` (a read-only check of a live
+  project as a logged-out visitor), security headers in `public/_headers`, and a CI workflow
+  (lint, test, build) in `.github/workflows/ci.yml`.
 
 **Done when:**
 - PROD is live
 - one backup has run and been restored into DEV successfully
 - the boss and HR can log in and view
+
+These three need Sahan (PROD, the GitHub secrets and the accounts), so they are still open.
+
+**Phase 5 checks, 14/10/2026** (production build on a local copy shaped like Supabase, fake people;
+`npm run smoke` on DEV, read-only):
+- backup and restore, end to end on the local copy: `scripts/backup.sh` then
+  `scripts/restore-backup.sh` into a second database; 18 tables identical row for row, sequences
+  carried over (numbering continues), guard triggers working after the restore. A wrong passphrase
+  and a wrong host name are both refused with a plain message.
+- a sweep of all 37 pages, in two modes: against an empty database, and with the server cut off
+  after sign-in. Every page shows an empty message or "Could not reach the server", never a blank
+  page, "Loading..." forever or a raw error. Found and fixed on the way: a lost connection at
+  sign-in said "Ask IT for access" (now "Could not reach the server" with Try again), and a failed
+  read kept "Loading..." up for 15 s (the Supabase client already retries, so the second retry in
+  TanStack Query is off).
+- the page crash screen is covered by a unit test (a component that throws shows the plain screen
+  and logs only `The page crashed (<name>).`); it was not forced in a real browser
+- the Content-Security-Policy and the other headers in `public/_headers` were applied by a small
+  server that reads the file. The admin pages, public report page, photos, stock, faults and label
+  suites all pass with the policy enforced and no violations. The headers are not tested on
+  Cloudflare itself: look at `https://<your-site>/` in the browser's Network tab after the first
+  deploy.
+- `/audit`: 123 fake rows page in 50 at a time, the filters narrow, a row opens to show before and
+  after, the export downloads, a viewer has no link and sees nothing at `/audit`.
+- install-as-app, by script only: a valid manifest, 192 and 512 px icons (one maskable), an active
+  service worker, and the app shell opens with the network off.
+- `npm run smoke` on DEV: "All clear" (nothing readable logged out, 14 write functions refused,
+  photo bucket private, sign-ups disabled).
+- all 7 SQL suites pass on a fresh database; `rls.api.test.ts` passes 125 on the local copy. The
+  new audit tests need the migration on DEV (`npx supabase db push`) before `npm run test:rls`
+  passes there.
 
 ### Later (not scheduled)
 - Email reminders through custom SMTP, using the company mailbox.
@@ -402,6 +440,8 @@ A4 portrait, matching the company's paper form, with everything pre-filled from 
 3. **Admin:** a direct update of `assets.status` or `assigned_employee_id` fails (guard trigger). The
    same change through the RPC works and writes a Change Log row.
 4. **Logged in with no profile row:** sees nothing.
+   **Audit log:** a viewer reads no rows of `audit_log`; the admin reads them but cannot write,
+   change or delete any.
 5. **Logged out:** `submit_fault_report` called more than the rate limit allows for one asset within
    an hour gets refused.
 

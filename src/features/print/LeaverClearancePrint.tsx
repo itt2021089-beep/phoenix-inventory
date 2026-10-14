@@ -29,7 +29,14 @@ export function LeaverClearancePrint() {
           isLoading={person.isLoading || holdings.isLoading}
           error={person.error ?? holdings.error}
         />
-        {!person.isLoading && !person.error && !p && <p>No such person.</p>}
+        {!person.isLoading && !person.error && !p && (
+          <p>
+            No such person.{' '}
+            <a className="underline" href="/people">
+              Back to people
+            </a>
+          </p>
+        )}
       </div>
     )
   }

@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   BarChart3,
+  History,
   Boxes,
   ClipboardList,
   LayoutDashboard,
@@ -42,6 +43,7 @@ const NAV: NavItem[] = [
   { to: '/stock', label: 'Stock', icon: Package, desktopOnly: true },
   { to: '/reports', label: 'Reports', icon: BarChart3, desktopOnly: true },
   { to: '/export', label: 'Excel', icon: FileSpreadsheet, desktopOnly: true },
+  { to: '/audit', label: 'Audit log', icon: History, adminOnly: true, desktopOnly: true },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 

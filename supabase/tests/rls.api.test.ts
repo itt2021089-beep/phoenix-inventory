@@ -595,3 +595,35 @@ describe('2. viewer: Phase 4', () => {
     expect(after.data?.value).toEqual(before.data?.value)
   })
 })
+
+describe('2. viewer: the audit log is IT only', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('VIEWER')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it('reads no audit rows', async () => {
+    const { data, error } = await s.c.from('audit_log').select('id').limit(1)
+    expect(error).toBeNull()
+    expect(data).toHaveLength(0)
+  })
+})
+
+describe('3. admin: the audit log', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('ADMIN')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it('reads it, but cannot add to it, change it or delete from it', async () => {
+    const read = await s.c.from('audit_log').select('id').limit(1)
+    expect(read.error).toBeNull()
+    expect(read.data?.length, 'DEV has audit rows after the import').toBeGreaterThan(0)
+    const write = await s.c
+      .from('audit_log')
+      .insert({ table_name: 'rls-test', record_id: 'x', action: 'insert' })
+    expect(write.error?.code, write.error?.message).toBe(PERMISSION_DENIED)
+    const change = await s.c.from('audit_log').update({ record_id: 'x' }).eq('id', read.data![0].id)
+    expect(change.error?.code, change.error?.message).toBe(PERMISSION_DENIED)
+    const del = await s.c.from('audit_log').delete().eq('id', read.data![0].id)
+    expect(del.error?.code, del.error?.message).toBe(PERMISSION_DENIED)
+  })
+})

@@ -15,7 +15,9 @@
     "test:watch": "vitest",
     "test:rls": "vitest run --config vitest.rls.config.ts",
     "gen:types": "supabase gen types typescript --linked > src/lib/database.types.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke": "node scripts/smoke.mjs",
+    "backup": "bash scripts/backup.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

@@ -297,6 +297,10 @@ begin
   perform pg_temp.act_as(viewer_id);
   perform pg_temp.check((select count(*) from assets) = 3, 'viewer reads assets');
   perform pg_temp.check((select count(*) from change_log) > 0, 'viewer reads the change log');
+  perform pg_temp.check((select count(*) from audit_log) = 0, 'viewer reads none of the audit log (IT only)');
+  perform pg_temp.expect_error($q$insert into audit_log (table_name, record_id, action) values ('x', 'y', 'insert')$q$,
+    '%permission denied%', 'nobody writes the audit log through the API');
+  perform pg_temp.expect_error($q$delete from audit_log$q$, '%permission denied%', 'nobody deletes from the audit log');
   perform pg_temp.check((select count(*) from stock_movements) > 0, 'viewer reads stock movements');
   perform pg_temp.check((select count(*) from fault_log) = 1, 'viewer reads faults');
   perform pg_temp.expect_error(format($q$insert into stock_movements (stock_item_id, movement_type, qty_change) values (%s, 'received', 1)$q$, mouse_stock),
