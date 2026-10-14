@@ -374,6 +374,7 @@ in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the 
 | `record_service_job(header jsonb, lines jsonb)` | Creates the job and its lines and fills `next_due_date`. Returns `job_no`. |
 | `get_public_asset(tag)` | **Public (anon).** Returns only `asset_tag, category name, make, model` for an active asset, or nothing. |
 | `submit_fault_report(tag, reporter_name, description, photo_path)` | **Public (anon).** Validates the lengths (name ≤ 80, description 5–1000) and the rate limit per asset. Inserts a fault with `source = 'qr'` and fills `holder_employee_id`. Returns `fault_no`. |
+| `import_workbook(payload jsonb)` | **Admin.** Brings the Excel workbook in, in one transaction. Takes names, not ids: `categories`, `locations`, `employees`, `assets` (with an `accessories` list of names) and `change_log`. Safe to re-run: everything is matched on its natural key (tag, NID, change number, name), so a second run updates rather than duplicates. Keeps the workbook's CHG numbers and dates, writes no change rows of its own, and afterwards moves each category's `next_tag_number` and the CHG sequence past the numbers used. The browser parses the file (`src/features/import-export/`); nothing is uploaded. |
 | `ping()` | **Public.** Returns 1. Used by the keep-alive workflow. |
 
 ## Views (all `with (security_invoker = true)`)
