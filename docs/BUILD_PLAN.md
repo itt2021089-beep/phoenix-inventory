@@ -195,8 +195,10 @@ the guard-trigger check now running because DEV has issued assets.
 - [ ] Route `/a/:tag`:
   - logged in → the asset page
   - logged out → the public report page
-- [ ] RPCs `get_public_asset` and `submit_fault_report` (with the rate limit), plus the anon storage
-  policy for `reports/`.
+- [x] RPCs `get_public_asset` and `submit_fault_report` (with the rate limit), plus the anon storage
+  policy for `reports/` (Phase 3 PR A, 15/10/2026; also `ping`). Two limits (Sahan, 15/10/2026):
+  3 QR reports per asset per hour, and 20 an hour across all assets (`report_rate_limit_total`).
+  Only logged-out callers may file a report; a viewer writes nothing.
 - [ ] **Public report page** (must work on a cheap Android phone and on mobile data):
   - load it as its own small chunk (route-level `React.lazy`), without the admin app: in Phase 1
     the main bundle is ~220 kB gzipped, mostly react-dom, supabase-js, zod and react-router
@@ -360,7 +362,8 @@ A4 portrait, matching the company's paper form, with everything pre-filled from 
 ## RLS checklist (run after every phase that touches SQL)
 
 1. **Logged out (publishable key only):** a select on every table and view returns no rows. Only
-   `get_public_asset`, `submit_fault_report` and `ping` can be called.
+   `get_public_asset`, `submit_fault_report` and `ping` can be called, and
+   `submit_fault_report` only by them (a logged-in viewer is refused).
 2. **Viewer:** can read everything. Every insert, update and delete fails, and every write RPC raises
    `not allowed`.
 3. **Admin:** a direct update of `assets.status` or `assigned_employee_id` fails (guard trigger). The

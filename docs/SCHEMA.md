@@ -327,6 +327,7 @@ seed:
   repeat_fault_months    12
   reminder_window_days   30
   report_rate_limit      3      -- max QR reports per asset per hour
+  report_rate_limit_total 20    -- max QR reports per hour across all assets (Sahan, 15/10/2026)
 ```
 
 ### audit_log (append-only)
@@ -379,10 +380,10 @@ in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the 
 | `send_for_repair(asset_id, fault_id, vendor_id, date, reason)` / `back_from_repair(asset_id, condition, next_status, date, reason)` | Send: Faulty or Spare → Under Repair (In Use is refused: return it first, as Faulty), writes `sent_for_repair` with the vendor name in `to_text`, and the fault (if given) goes With Vendor. Back: Under Repair → Spare (fixed: With Vendor faults close on that date) or Faulty (not fixed: they reopen), writes `back_from_repair` with the vendor in `from_text`. |
 | `retire_asset(asset_id, reason)` / `dispose_asset(asset_id, reason)` | A reason is required. Clears the person and writes the change row. Retire works from any active status; Dispose from anything but Disposed. |
 | `record_service_job(header jsonb, lines jsonb)` | `header` is `{vendor_id, job_type, service_date, invoice_no, invoice_total, notes}`; `lines` is `[{asset_id, work_done, cost, next_due_date?, notes?, fault_id?}]`. Creates the job and its lines and fills `next_due_date`. A line's `fault_id` links that fault (which must be on the same asset) to the line, closes it on the job date and sets its cost to 0 (rule 7). Retired and Disposed assets are refused. Returns `job_no`. |
-| `get_public_asset(tag)` | **Public (anon).** Returns only `asset_tag, category name, make, model` for an active asset, or nothing. |
-| `submit_fault_report(tag, reporter_name, description, photo_path)` | **Public (anon).** Validates the lengths (name ≤ 80, description 5–1000) and the rate limit per asset. Inserts a fault with `source = 'qr'` and fills `holder_employee_id`. Returns `fault_no`. |
+| `get_public_asset(tag)` | **Public (anon and logged in).** Returns only `asset_tag, category, make, model` for an active asset, or no row (retired, disposed and unknown tags look the same). The tag is trimmed and upper-cased. |
+| `submit_fault_report(tag, reporter_name, description, photo_path)` | **Public (anon only):** a viewer writes nothing, so logged-in users are refused. Tidies the text (control characters out; a description keeps its line breaks) and checks it: name 1–80, description 5–1000. Refuses an unknown or retired tag. Rate limits, checked under one lock so two phones cannot slip past together: `report_rate_limit` QR reports per asset per hour, and `report_rate_limit_total` across all assets. An optional `photo_path` must be `reports/<uuid>.jpg`, must exist in the bucket, and must not belong to another fault; it is then recorded in `photos` (kind `report`). Inserts a fault with `source = 'qr'`; `holder_employee_id` is filled from the asset. Returns `fault_no`. Every refusal is a short plain sentence with no data in it. |
 | `import_workbook(payload jsonb)` | **Admin.** Brings the Excel workbook in, in one transaction. Takes names, not ids: `categories`, `locations`, `employees`, `assets` (with an `accessories` list of names), `change_log`, `faults` (Phase 2: FLT number, tag, reporter by NID or typed name, vendor name, status, cost, findings) and `stock` (Phase 2: name, reorder level, quantity received and issued). Safe to re-run: everything is matched on its natural key (tag, NID, change number, fault number, name), so a second run updates rather than duplicates; a finding or vendor set in the app survives a row that leaves it blank, and each consumable's opening balance (a `received` and an `issued` movement, reference "Opening balance from Excel") is written once only. Keeps the workbook's CHG and FLT numbers and dates, writes no change rows of its own, and afterwards moves each category's `next_tag_number` and the CHG and FLT sequences past the numbers used. Returns the counts, including `faults` and `stock_items` (opening balances written by this run). The browser parses the file (`src/features/import-export/`); nothing is uploaded. |
-| `ping()` | **Public.** Returns 1. Used by the keep-alive workflow. |
+| `ping()` | **Public (anon and logged in).** Returns 1. Used by the keep-alive workflow. |
 
 ## Views (all `with (security_invoker = true)`)
 
@@ -407,13 +408,15 @@ in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the 
 | delete | only unused lookup rows (location, vendor, accessory type) | ❌ | ❌ |
 | change_log, audit_log, handover_forms, asset_accessories | insert through the RPCs (audit_log: through its trigger); change_log, audit_log and handover_forms are never updated or deleted | ❌ | ❌ |
 | execute write RPCs | ✅ | ❌ (raises `not allowed`) | ❌ |
-| execute `get_public_asset`, `submit_fault_report`, `ping` | ✅ | ✅ | ✅ |
+| execute `get_public_asset`, `ping` | ✅ | ✅ | ✅ |
+| execute `submit_fault_report` | ❌ | ❌ | ✅ (rate-limited) |
 
 ## Storage
 
 Bucket `photos`: private, 5 MB per file, `image/*` only. Created by the `photos` migration.
 Nobody updates (overwrites) or deletes a file: there is no policy for either. Upload with a new
-name each time. The `reports/` policy comes with the public report form in Phase 3.
+name each time. A logged-out phone may only add `reports/<uuid>.jpg` (policy
+`photos_bucket_anon_report`, Phase 3); it cannot read or list anything, not even its own upload.
 
 | Path | admin | viewer | anon |
 |---|---|---|---|
