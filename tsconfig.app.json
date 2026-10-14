@@ -26,5 +26,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests are typechecked by tsconfig.test.json, which adds Node and DOM test types. Keeping
+  // them out here stops Node APIs from typechecking inside app code.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"]
 }
