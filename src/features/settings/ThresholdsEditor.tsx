@@ -46,6 +46,8 @@ function useSaveThresholds() {
 /** The thresholds for reminders, repair-vs-replace and QR reports. Only IT can change them. */
 export function ThresholdsEditor({ canEdit }: { canEdit: boolean }) {
   const rows = useThresholdRows()
+  // Kept here, not in the form: saving refreshes the stored values, which rebuilds the form.
+  const [saved, setSaved] = useState(false)
   if (!rows.data) return <QueryState isLoading={rows.isLoading} error={rows.error} />
   // Keyed on what is stored, so a save (or another tab's save) refreshes the boxes.
   return (
@@ -53,6 +55,8 @@ export function ThresholdsEditor({ canEdit }: { canEdit: boolean }) {
       key={JSON.stringify(rows.data)}
       initial={currentValues(rows.data)}
       canEdit={canEdit}
+      saved={saved}
+      setSaved={setSaved}
     />
   )
 }
@@ -60,15 +64,18 @@ export function ThresholdsEditor({ canEdit }: { canEdit: boolean }) {
 function ThresholdsForm({
   initial,
   canEdit,
+  saved,
+  setSaved,
 }: {
   initial: ReturnType<typeof currentValues>
   canEdit: boolean
+  saved: boolean
+  setSaved: (saved: boolean) => void
 }) {
   const save = useSaveThresholds()
   const [text, setText] = useState(() =>
     Object.fromEntries(THRESHOLDS.map((t) => [t.key, String(initial[t.key])])),
   )
-  const [saved, setSaved] = useState(false)
   const errors = Object.fromEntries(
     THRESHOLDS.map((t) => [t.key, validateThreshold(t, text[t.key])]),
   )

@@ -490,3 +490,108 @@ describe('2. viewer: the QR report is for logged-out phones only', () => {
     expect(error).toBeNull()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Phase 4: reminder and repair-vs-replace views, spend report, swap and thresholds.
+// ---------------------------------------------------------------------------
+const PHASE4_VIEWS = [
+  'v_asset_costs',
+  'v_due_soon',
+  'v_stock_levels',
+  'v_open_faults',
+  'v_spend_monthly',
+] as const
+
+const SWAP_ARGS = {
+  p_faulty_asset_id: NOWHERE,
+  p_spare_asset_id: NOWHERE,
+  p_fault_description: 'rls test',
+}
+
+describe('1. logged out: Phase 4', () => {
+  const anon = client()
+
+  it.each(PHASE4_VIEWS)('reads nothing from %s', async (name) => {
+    const { data, error } = await anon.from(name).select('*').limit(1)
+    if (error) expect(error.code, error.message).toBe(PERMISSION_DENIED)
+    else expect(data).toHaveLength(0)
+  })
+
+  it('cannot swap an asset', async () => {
+    const { error } = await anon.rpc('swap_asset', SWAP_ARGS)
+    expect(error?.code, error?.message).toBe(PERMISSION_DENIED)
+  })
+
+  it('cannot read or change the thresholds', async () => {
+    const read = await anon.from('settings').select('key').limit(1)
+    if (read.error) expect(read.error.code).toBe(PERMISSION_DENIED)
+    else expect(read.data).toHaveLength(0)
+    const write = await anon.from('settings').update({ value: 1 }).eq('key', 'repair_replace_pct')
+    expect(write.error?.code, write.error?.message).toBe(PERMISSION_DENIED)
+  })
+})
+
+describe('4. no profile row: Phase 4', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('NOPROFILE')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it.each(PHASE4_VIEWS)('reads nothing from %s', async (name) => {
+    const { data, error } = await s.c.from(name).select('*').limit(1)
+    expect(error).toBeNull()
+    expect(data).toHaveLength(0)
+  })
+
+  it('sees no dashboard row', async () => {
+    const { data, error } = await s.c.from('v_dashboard').select('*')
+    expect(error).toBeNull()
+    expect(data).toHaveLength(0)
+  })
+})
+
+describe('2. viewer: Phase 4', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('VIEWER')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it.each(PHASE4_VIEWS)('reads %s', async (name) => {
+    const { error } = await s.c.from(name).select('*').limit(1)
+    expect(error).toBeNull()
+  })
+
+  it('reads the dashboard counts, including the Phase 4 ones', async () => {
+    const { data, error } = await s.c.from('v_dashboard').select('*')
+    expect(error).toBeNull()
+    expect(data).toHaveLength(1)
+    expect(Object.keys(data![0])).toEqual(
+      expect.arrayContaining([
+        'open_faults',
+        'stock_to_reorder',
+        'due_soon',
+        'overdue',
+        'flagged_assets',
+      ]),
+    )
+  })
+
+  it('is told "not allowed" by swap_asset', async () => {
+    const { error } = await s.c.rpc('swap_asset', SWAP_ARGS)
+    expect(error?.message).toBe('not allowed')
+  })
+
+  it('cannot change a threshold', async () => {
+    // Under RLS the update matches no rows: no error, and the value must be unchanged.
+    const before = await s.c
+      .from('settings')
+      .select('value')
+      .eq('key', 'repair_replace_pct')
+      .single()
+    await s.c.from('settings').update({ value: 999 }).eq('key', 'repair_replace_pct')
+    const after = await s.c
+      .from('settings')
+      .select('value')
+      .eq('key', 'repair_replace_pct')
+      .single()
+    expect(after.data?.value).toEqual(before.data?.value)
+  })
+})
