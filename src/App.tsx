@@ -16,6 +16,8 @@ import { PlaceholderPage } from '@/features/dashboard/PlaceholderPage'
 import { IssuePage } from '@/features/issue/IssuePage'
 import { ReturnPage } from '@/features/issue/ReturnPage'
 import { TransferPage } from '@/features/issue/TransferPage'
+import { ExportPage } from '@/features/import-export/ExportPage'
+import { ImportPage } from '@/features/import-export/ImportPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
@@ -48,11 +50,13 @@ export default function App() {
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="people" element={<PeopleListPage />} />
                 <Route path="people/:id" element={<PersonPage />} />
+                <Route path="export" element={<ExportPage />} />
                 <Route element={<RequireAdmin />}>
                   <Route path="assets/new" element={<AddAssetPage />} />
                   <Route path="assets/:tag/edit" element={<EditAssetPage />} />
                   <Route path="people/new" element={<PersonFormPage />} />
                   <Route path="people/:id/edit" element={<PersonFormPage />} />
+                  <Route path="import" element={<ImportPage />} />
                   <Route path="issue" element={<IssuePage />} />
                   <Route path="return" element={<ReturnPage />} />
                   <Route path="transfer" element={<TransferPage />} />
