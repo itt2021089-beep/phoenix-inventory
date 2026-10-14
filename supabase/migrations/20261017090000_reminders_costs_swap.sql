@@ -181,6 +181,35 @@ left join public.vendors v on v.id = f.vendor_id
 where f.status <> 'closed';
 
 -- ---------------------------------------------------------------------------
+-- v_spend_monthly: repair and service spend per department per month (Reports).
+-- A fault's cost belongs to the month it was closed (else reported); a service line's to the
+-- month of its job. The department is the asset's department now; no department is "Common".
+-- ---------------------------------------------------------------------------
+create view public.v_spend_monthly with (security_invoker = true) as
+select
+  date_trunc('month', coalesce(f.date_closed, f.date_reported))::date as month,
+  a.department_id,
+  coalesce(d.name, 'Common') as department,
+  'fault'::text              as source,
+  f.cost                     as amount
+from public.fault_log f
+join public.assets a on a.id = f.asset_id
+left join public.departments d on d.id = a.department_id
+where f.cost > 0
+union all
+select
+  date_trunc('month', j.service_date)::date,
+  a.department_id,
+  coalesce(d.name, 'Common'),
+  'service'::text,
+  l.cost
+from public.service_lines l
+join public.service_jobs j on j.id = l.job_id
+join public.assets a on a.id = l.asset_id
+left join public.departments d on d.id = a.department_id
+where l.cost > 0;
+
+-- ---------------------------------------------------------------------------
 -- v_dashboard gains the Phase 4 counts (new columns go at the end; the old ones are unchanged).
 -- ---------------------------------------------------------------------------
 create or replace view public.v_dashboard with (security_invoker = true) as
@@ -202,20 +231,25 @@ select
 from public.assets
 having public.is_viewer_or_admin();
 
-revoke all on public.v_asset_costs, public.v_due_soon, public.v_stock_levels, public.v_open_faults
+revoke all on public.v_asset_costs, public.v_due_soon, public.v_stock_levels, public.v_open_faults,
+              public.v_spend_monthly
 from anon, authenticated;
-grant select on public.v_asset_costs, public.v_due_soon, public.v_stock_levels, public.v_open_faults
+grant select on public.v_asset_costs, public.v_due_soon, public.v_stock_levels, public.v_open_faults,
+                public.v_spend_monthly
 to authenticated;
 
 -- ---------------------------------------------------------------------------
--- swap_asset(faulty, spare, fault description): a faulty laptop is replaced from the spare
--- pool in one step, for the same person, desk and department, with its accessories.
+-- swap_asset(faulty, spare, fault description, date, fault id): a faulty laptop is replaced from
+-- the spare pool in one step, for the same person, desk and department, with its accessories.
+-- It opens a fault with the description, or, when started from a fault that is already open
+-- (the fault page), links that fault instead and opens nothing new.
 -- ---------------------------------------------------------------------------
 create or replace function public.swap_asset(
   p_faulty_asset_id   uuid,
   p_spare_asset_id    uuid,
-  p_fault_description text,
-  p_swap_date         date default null
+  p_fault_description text default null,
+  p_swap_date         date default null,
+  p_fault_id          bigint default null
 )
 returns text
 language plpgsql
@@ -233,11 +267,14 @@ declare
   acc_ids smallint[];
   acc_names text[];
   fault_no  text;
+  fault_row public.fault_log;
 begin
   perform public._require_admin();
 
   if p_faulty_asset_id = p_spare_asset_id then raise exception 'Pick two different assets'; end if;
-  if what is null then raise exception 'Say what is wrong with the faulty one'; end if;
+  if p_fault_id is null and what is null then
+    raise exception 'Say what is wrong with the faulty one';
+  end if;
 
   -- Lock both in a fixed order, so two swaps at once cannot deadlock.
   perform 1 from public.assets
@@ -261,11 +298,22 @@ begin
   from public.asset_accessories where asset_id = old_a.id;
   acc_names := public._accessory_names(acc_ids);
 
-  -- The fault, opened while the old asset still shows who held it.
-  insert into public.fault_log (
-    asset_id, date_reported, reported_by_employee_id, holder_employee_id, description)
-  values (old_a.id, sdate, holder.id, holder.id, what)
-  returning fault_log.fault_no into fault_no;
+  if p_fault_id is not null then
+    -- An open fault on this asset, already on record: it stays as it is.
+    select * into fault_row from public.fault_log
+    where id = p_fault_id and asset_id = old_a.id and status <> 'closed';
+    if not found then
+      raise exception 'That is not an open fault on %', old_a.asset_tag;
+    end if;
+    fault_no := fault_row.fault_no;
+    what := fault_row.description;
+  else
+    -- The fault, opened while the old asset still shows who held it.
+    insert into public.fault_log (
+      asset_id, date_reported, reported_by_employee_id, holder_employee_id, description)
+    values (old_a.id, sdate, holder.id, holder.id, what)
+    returning fault_log.fault_no into fault_no;
+  end if;
 
   moves_prev := public._allow_asset_moves();
 
@@ -310,5 +358,5 @@ begin
 end;
 $$;
 
-revoke all on function public.swap_asset(uuid, uuid, text, date) from public, anon;
-grant execute on function public.swap_asset(uuid, uuid, text, date) to authenticated;
+revoke all on function public.swap_asset(uuid, uuid, text, date, bigint) from public, anon;
+grant execute on function public.swap_asset(uuid, uuid, text, date, bigint) to authenticated;

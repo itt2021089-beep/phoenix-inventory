@@ -51,7 +51,7 @@ declare
   today date := (now() at time zone 'Asia/Colombo')::date;
   e1 uuid; desk smallint; travel smallint := (select id from departments where name = 'Travel');
   l1 uuid; l2 uuid; l3 uuid; l4 uuid; ac1 uuid; ac2 uuid; ac3 uuid; h1 uuid;
-  job text; r record; fno text; n int;
+  job text; r record; fno text; n int; moves int;
 begin
   perform pg_temp.act_as(admin_id);
   insert into locations (name, kind) values ('Travel desk', 'desk') returning id into desk;
@@ -134,6 +134,21 @@ begin
   -- Retired assets are never flagged.
   perform retire_asset(l1, 'Test: beyond repair');
   perform pg_temp.check(not (select flagged from v_asset_costs where asset_id = l1), 'a retired asset is not flagged');
+
+  -- ---- v_spend_monthly: per department, per month, fault and service costs ---------------
+  perform move_asset(l2, desk, travel, 'Spend test');
+  insert into fault_log (asset_id, description, cost, status, date_closed, date_reported)
+  values (l2, 'Spend test', 1000, 'closed', date '2026-03-20', date '2026-03-10');
+  job := record_service_job(jsonb_build_object('job_type', 'repair', 'service_date', '2026-03-05'),
+    jsonb_build_array(jsonb_build_object('asset_id', l2, 'work_done', 'Spend test', 'cost', 2500)));
+  select sum(amount) into n from v_spend_monthly
+  where month = date '2026-03-01' and department = 'Travel' and source = 'fault';
+  perform pg_temp.check(n = 1000, 'a fault cost lands in the month it was closed, under its asset''s department');
+  select sum(amount) into n from v_spend_monthly
+  where month = date '2026-03-01' and department = 'Travel' and source = 'service';
+  perform pg_temp.check(n = 2500, 'a service line cost lands in its job''s month');
+  perform pg_temp.check(exists (select 1 from v_spend_monthly where department = 'Common'), 'no department shows as Common');
+  perform pg_temp.check(not exists (select 1 from v_spend_monthly where amount <= 0), 'free work is not listed');
 
   -- ---- v_due_soon -------------------------------------------------------------------------
   -- Warranties of the three ACs end in 10 days: within the 30-day window.
@@ -223,12 +238,26 @@ begin
   -- The existing repair actions take it from here.
   perform send_for_repair(l2, (select id from fault_log where fault_no = fno), null);
   perform pg_temp.check((select status from assets where id = l2) = 'under_repair', 'a swapped-out asset can be sent for repair');
+  -- Swapping from a fault that is already open links it and opens nothing new.
+  perform add_assets(lap, 1, '{"make": "Dell", "model": "Latitude 5400"}');
+  select id into l3 from assets where asset_tag = 'PBS-LAP-006';
+  insert into fault_log (asset_id, description) values (l1, 'Battery swollen') returning id into n;
+  select count(*) into moves from fault_log;
+  perform pg_temp.expect_error(format($q$select swap_asset(%L, %L, null, null, %s)$q$, l1, l3, n + 999),
+    '%not an open fault%', 'the fault must exist and be open on that asset');
+  fno := swap_asset(l1, l3, null, today, n);
+  perform pg_temp.check(fno = (select fault_no from fault_log where id = n) and (select count(*) from fault_log) = moves,
+    'the existing fault is used and no second fault is opened');
+  perform pg_temp.check((select status from assets where id = l3) = 'in_use' and (select status from assets where id = l1) = 'faulty',
+    'and the swap still happens');
+  perform pg_temp.check(exists (select 1 from change_log where asset_id = l1 and change_type = 'returned'
+    and reason like '%Battery swollen'), 'the Change Log carries the fault text');
   -- And a failed swap leaves everything as it was.
-  perform pg_temp.expect_error(format($q$select swap_asset(%L, %L, 'Again')$q$, l1, l2),
-    '%is not Spare%', 'the old asset is no longer Spare');
+  perform pg_temp.expect_error(format($q$select swap_asset(%L, %L, 'Again')$q$, l3, l2),
+    '%is not Spare%', 'something under repair cannot be swapped in');
   select count(*) into n from fault_log;
   begin
-    perform swap_asset(l1, l2, 'Again');
+    perform swap_asset(l3, l2, 'Again');
   exception when others then null;
   end;
   perform pg_temp.check((select count(*) from fault_log) = n, 'a refused swap opens no fault');
@@ -238,7 +267,7 @@ begin
 
   -- ---- A viewer reads the views and cannot swap or change settings -----------------------
   perform pg_temp.act_as(viewer_id);
-  perform pg_temp.check((select count(*) from v_asset_costs) > 0 and (select count(*) from v_due_soon) > 0
+  perform pg_temp.check((select count(*) from v_asset_costs) > 0 and (select count(*) from v_spend_monthly) > 0 and (select count(*) from v_due_soon) > 0
     and (select count(*) from v_open_faults) > 0 and (select count(*) from v_stock_levels) > 0, 'a viewer reads the new views');
   perform pg_temp.check((select open_faults from v_dashboard) > 0, 'and the dashboard counts');
   perform pg_temp.expect_error(format($q$select swap_asset(%L, %L, 'x')$q$, l1, l2), 'not allowed', 'viewer swap_asset');
@@ -257,6 +286,7 @@ begin
   set local role authenticated;
   perform pg_temp.check((select count(*) from v_asset_costs) = 0 and (select count(*) from v_due_soon) = 0
     and (select count(*) from v_open_faults) = 0 and (select count(*) from v_stock_levels) = 0
+    and (select count(*) from v_spend_monthly) = 0
     and (select count(*) from v_dashboard) = 0, 'a user with no profile sees nothing through any new view');
   reset role;
 

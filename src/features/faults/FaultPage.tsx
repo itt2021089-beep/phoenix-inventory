@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/features/auth/useAuth'
+import { SwapPanel } from '@/features/assets/SwapPanel'
+import { useAssetList } from '@/features/assets/api'
 import { usePhotos } from '@/features/photos/api'
 import { PhotoGallery } from '@/features/photos/PhotoGallery'
 import { PhotoUpload } from '@/features/photos/PhotoUpload'
@@ -398,15 +400,7 @@ function RepairActions({ fault: f }: { fault: FaultRow }) {
   }
 
   if (asset.status === 'in_use') {
-    return (
-      <p className="text-sm text-muted-foreground">
-        {asset.asset_tag} is still with its holder.{' '}
-        <Link className="underline underline-offset-2" to={`/return?asset=${asset.asset_tag}`}>
-          Return it
-        </Link>{' '}
-        as Faulty first, then send it for repair.
-      </p>
-    )
+    return <InUseOptions fault={f} />
   }
 
   if (asset.status !== 'faulty' && asset.status !== 'spare') return null
@@ -684,5 +678,41 @@ function MatchReporter({ fault: f }: { fault: FaultRow }) {
         )}
       </CardContent>
     </Card>
+  )
+}
+
+/** The faulty thing is still with its holder: return it, or swap in a spare in one step. */
+function InUseOptions({ fault: f }: { fault: FaultRow }) {
+  const assets = useAssetList()
+  const [open, setOpen] = useState(false)
+  const asset = f.asset!
+  const full = assets.data?.find((x) => x.asset_tag === asset.asset_tag)
+
+  if (open && full) {
+    return (
+      <SwapPanel
+        asset={full}
+        faultId={f.id}
+        faultText={f.description}
+        onDone={() => setOpen(false)}
+      />
+    )
+  }
+  return (
+    <div className="space-y-2 text-sm text-muted-foreground">
+      <p>
+        {asset.asset_tag} is still with its holder.{' '}
+        <Link className="underline underline-offset-2" to={`/return?asset=${asset.asset_tag}`}>
+          Return it
+        </Link>{' '}
+        as Faulty, then send it for repair
+        {full?.assigned_employee_id ? ', or give them a spare now:' : '.'}
+      </p>
+      {full?.assigned_employee_id && (
+        <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+          Swap for a spare
+        </Button>
+      )}
+    </div>
   )
 }

@@ -1274,6 +1274,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_spend_monthly: {
+        Row: {
+          amount: number | null
+          department: string | null
+          department_id: number | null
+          month: string | null
+          source: string | null
+        }
+        Relationships: []
+      }
       v_stock_levels: {
         Row: {
           is_active: boolean | null
@@ -1429,7 +1439,8 @@ export type Database = {
       }
       swap_asset: {
         Args: {
-          p_fault_description: string
+          p_fault_description?: string
+          p_fault_id?: number
           p_faulty_asset_id: string
           p_spare_asset_id: string
           p_swap_date?: string

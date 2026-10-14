@@ -16,6 +16,7 @@ import { LOCATION_KIND_LABELS, VENDOR_KIND_LABELS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 import { CategoriesEditor } from './CategoriesEditor'
+import { ThresholdsEditor } from './ThresholdsEditor'
 import { ListEditor } from './ListEditor'
 
 const TABS = [
@@ -24,6 +25,7 @@ const TABS = [
   { key: 'departments', label: 'Departments' },
   { key: 'locations', label: 'Locations' },
   { key: 'vendors', label: 'Suppliers & vendors' },
+  { key: 'thresholds', label: 'Reminders & limits' },
 ] as const
 
 const options = (labels: Record<string, string>) =>
@@ -41,7 +43,8 @@ export function SettingsPage() {
   const departments = useDepartments()
   const locations = useLocations()
   const vendors = useVendors()
-  const active = { categories, accessories, departments, locations, vendors }[tab]
+  // The thresholds tab loads its own rows, so it has no query to show a spinner for here.
+  const active = { categories, accessories, departments, locations, vendors, thresholds: null }[tab]
 
   return (
     <div>
@@ -72,7 +75,8 @@ export function SettingsPage() {
 
       <Card>
         <CardContent>
-          <QueryState isLoading={active.isLoading} error={active.error} />
+          {active && <QueryState isLoading={active.isLoading} error={active.error} />}
+          {tab === 'thresholds' && <ThresholdsEditor canEdit={canEdit} />}
           {tab === 'categories' && categories.data && (
             <CategoriesEditor rows={categories.data} canEdit={canEdit} />
           )}

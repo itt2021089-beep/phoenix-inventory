@@ -13,8 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
+import { type DueRow, dueLabel, flagReason, sortDue, sortFlagged, spendText } from './panels'
 import { departmentGrid, useDashboard } from './useDashboard'
 
 function Stat({
@@ -28,9 +30,12 @@ function Stat({
   to: string
   tone?: 'warn'
 }) {
+  // A '#section' link scrolls this page; anything else is a route.
+  const Tag = to.startsWith('#') ? 'a' : Link
+  const target = to.startsWith('#') ? { href: to } : { to }
   return (
-    <Link
-      to={to}
+    <Tag
+      {...(target as { to: string })}
       className={cn(
         'rounded-xl border bg-card p-4 shadow-sm transition-colors hover:bg-accent',
         tone === 'warn' && value > 0 && 'border-red-300 dark:border-red-900',
@@ -45,7 +50,7 @@ function Stat({
       >
         {value}
       </p>
-    </Link>
+    </Tag>
   )
 }
 
@@ -99,6 +104,19 @@ export function DashboardPage() {
           tone="warn"
         />
       </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Stat label="Open faults" value={t?.open_faults ?? 0} to="/faults" tone="warn" />
+        <Stat label="Due soon or overdue" value={t?.due_soon ?? 0} to="#due-soon" tone="warn" />
+        <Stat
+          label="Repair-or-replace flags"
+          value={t?.flagged_assets ?? 0}
+          to="#flagged"
+          tone="warn"
+        />
+      </div>
+
+      <DuePanel due={data.due} windowDays={data.windowDays} />
 
       <Card>
         <CardHeader>
@@ -161,6 +179,130 @@ export function DashboardPage() {
         </CardContent>
       </Card>
 
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Stock to reorder</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.stockToReorder.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nothing is at or below its reorder level.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {data.stockToReorder.map((s) => (
+                  <li key={s.stock_item_id} className="flex items-baseline justify-between gap-2">
+                    <Link
+                      className="underline-offset-4 hover:underline"
+                      to={`/stock/${s.item_code}`}
+                    >
+                      {s.name}
+                    </Link>
+                    <span className="font-medium text-red-700 tabular-nums dark:text-red-400">
+                      {s.qty_on_hand} left
+                      <span className="font-normal text-muted-foreground">
+                        {' '}
+                        (reorder at {s.reorder_level})
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Open faults
+              {(t?.open_qr_faults ?? 0) > 0 && (
+                <span className="ml-2 rounded-md border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-800 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-200">
+                  {t?.open_qr_faults} new from QR
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.openFaults.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No open faults.</p>
+            ) : (
+              <>
+                <ul className="space-y-2 text-sm">
+                  {data.openFaults.slice(0, 5).map((f) => (
+                    <li key={f.fault_id} className="flex items-baseline justify-between gap-2">
+                      <span className="min-w-0 truncate">
+                        <Link
+                          className="font-mono text-xs underline underline-offset-2"
+                          to={`/faults/${f.fault_no}`}
+                        >
+                          {f.fault_no}
+                        </Link>{' '}
+                        <span className="font-mono text-xs">{f.asset_tag}</span>{' '}
+                        <span className="text-muted-foreground">{f.description}</span>
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {f.age_days === 0 ? 'today' : `${f.age_days}d`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {data.openFaults.length > 5 && (
+                  <Link
+                    to="/faults"
+                    className="mt-2 inline-block text-sm underline underline-offset-4"
+                  >
+                    All {data.openFaults.length} open faults
+                  </Link>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card id="flagged">
+        <CardHeader>
+          <CardTitle>Repair or replace?</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.flagged.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No asset has cost half its replacement price in repairs, or failed three times in a
+              year. Set each category&apos;s typical replacement cost in Settings so this can work.
+            </p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {sortFlagged(data.flagged).map((r) => (
+                <li
+                  key={r.asset_id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3"
+                >
+                  <span>
+                    <Link
+                      className="font-mono underline underline-offset-4"
+                      to={`/assets/${r.asset_tag}`}
+                    >
+                      {r.asset_tag}
+                    </Link>{' '}
+                    <span className="text-muted-foreground">
+                      {[r.category, r.make, r.model].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                  <span className="text-red-700 dark:text-red-400">
+                    {flagReason(r, data.repeatMonths)} ({spendText(r)} spent)
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link to="/reports" className="mt-3 inline-block text-sm underline underline-offset-4">
+            Full repair-vs-replace report
+          </Link>
+        </CardContent>
+      </Card>
+
       {grid.departments.length > 0 && (
         <Card>
           <CardHeader>
@@ -205,5 +347,64 @@ export function DashboardPage() {
         </Card>
       )}
     </div>
+  )
+}
+
+/** Warranties ending and services due within the window; overdue ones in red. */
+function DuePanel({ due, windowDays }: { due: DueRow[]; windowDays: number }) {
+  const rows = sortDue(due)
+  return (
+    <Card id="due-soon">
+      <CardHeader>
+        <CardTitle>Due in the next {windowDays} days</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No warranty ends and no service is due in the next {windowDays} days.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Asset</TableHead>
+                <TableHead>What</TableHead>
+                <TableHead className="hidden sm:table-cell">Where</TableHead>
+                <TableHead className="text-right">Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow
+                  key={`${r.asset_id}-${r.kind}`}
+                  className={cn(r.overdue && 'bg-red-50 dark:bg-red-950/40')}
+                >
+                  <TableCell>
+                    <Link
+                      className="font-mono text-xs underline underline-offset-2"
+                      to={`/assets/${r.asset_tag}`}
+                    >
+                      {r.asset_tag}
+                    </Link>
+                    <div className="text-xs text-muted-foreground">
+                      {[r.category, r.make, r.model].filter(Boolean).join(' · ')}
+                    </div>
+                  </TableCell>
+                  <TableCell
+                    className={cn(r.overdue && 'font-semibold text-red-700 dark:text-red-400')}
+                  >
+                    {dueLabel(r)}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">{r.location}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatDate(r.due_date)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   )
 }
