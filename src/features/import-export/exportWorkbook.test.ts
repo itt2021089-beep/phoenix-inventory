@@ -64,25 +64,28 @@ describe('the Change Log tab', () => {
 })
 
 describe('the Consumables tab', () => {
-  it('flags an item at or below its reorder level', () => {
-    expect(
-      consumablesRow({
-        item_code: 'CON-001',
-        name: 'Optical mouse',
-        qty_on_hand: 8,
-        reorder_level: 10,
-        notes: null,
-      })[6],
-    ).toBe('REORDER')
-    expect(
-      consumablesRow({
-        item_code: 'CON-001',
-        name: 'Optical mouse',
-        qty_on_hand: 11,
-        reorder_level: 10,
-        notes: null,
-      })[6],
-    ).toBe('')
+  const mouse = {
+    id: 1,
+    item_code: 'CON-001',
+    name: 'Optical mouse',
+    reorder_level: 10,
+    notes: null,
+  }
+  it('flags an item at or below its reorder level, as the workbook did', () => {
+    expect(consumablesRow({ ...mouse, qty_on_hand: 8 })[6]).toBe('REORDER')
+    expect(consumablesRow({ ...mouse, qty_on_hand: 11 })[6]).toBe('OK')
+  })
+  it('fills received and issued from the movements', () => {
+    expect(consumablesRow({ ...mouse, qty_on_hand: 8 }, { received: 30, issued: 22 })).toEqual([
+      'CON-001',
+      'Optical mouse',
+      30,
+      22,
+      8,
+      10,
+      'REORDER',
+      '',
+    ])
   })
 })
 

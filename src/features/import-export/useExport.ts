@@ -40,38 +40,40 @@ const CHANGE_SELECT = `
 export function useExportWorkbook() {
   return useMutation({
     mutationFn: async () => {
-      const [assets, changes, faults, jobs, stock, totals, categories] = await Promise.all([
-        supabase.from('assets').select(ASSET_SELECT).order('asset_tag').returns<AssetListRow[]>(),
-        supabase
-          .from('change_log')
-          .select(CHANGE_SELECT)
-          .order('id')
-          .returns<ChangeLogExportRow[]>(),
-        supabase
-          .from('fault_log')
-          .select(FAULT_SELECT)
-          .order('date_reported', { ascending: false })
-          .order('id', { ascending: false })
-          .returns<FaultRow[]>(),
-        supabase
-          .from('service_jobs')
-          .select(JOB_SELECT)
-          .order('service_date', { ascending: false })
-          .order('id', { ascending: false })
-          .returns<ServiceJobRow[]>(),
-        supabase
-          .from('stock_items')
-          .select('item_code, name, qty_on_hand, reorder_level, notes')
-          .order('item_code')
-          .returns<StockRow[]>(),
-        supabase.from('v_dashboard').select('*').maybeSingle(),
-        supabase
-          .from('v_category_summary')
-          .select('category, active_total, in_use, spare, min_spares, below_min')
-          .order('category')
-          .returns<CategorySummaryRow[]>(),
-      ])
-      for (const r of [assets, changes, faults, jobs, stock, totals, categories])
+      const [assets, changes, faults, jobs, stock, movements, totals, categories] =
+        await Promise.all([
+          supabase.from('assets').select(ASSET_SELECT).order('asset_tag').returns<AssetListRow[]>(),
+          supabase
+            .from('change_log')
+            .select(CHANGE_SELECT)
+            .order('id')
+            .returns<ChangeLogExportRow[]>(),
+          supabase
+            .from('fault_log')
+            .select(FAULT_SELECT)
+            .order('date_reported', { ascending: false })
+            .order('id', { ascending: false })
+            .returns<FaultRow[]>(),
+          supabase
+            .from('service_jobs')
+            .select(JOB_SELECT)
+            .order('service_date', { ascending: false })
+            .order('id', { ascending: false })
+            .returns<ServiceJobRow[]>(),
+          supabase
+            .from('stock_items')
+            .select('id, item_code, name, qty_on_hand, reorder_level, notes')
+            .order('item_code')
+            .returns<StockRow[]>(),
+          supabase.from('stock_movements').select('stock_item_id, qty_change'),
+          supabase.from('v_dashboard').select('*').maybeSingle(),
+          supabase
+            .from('v_category_summary')
+            .select('category, active_total, in_use, spare, min_spares, below_min')
+            .order('category')
+            .returns<CategorySummaryRow[]>(),
+        ])
+      for (const r of [assets, changes, faults, jobs, stock, movements, totals, categories])
         if (r.error) throw r.error
 
       await downloadWorkbook(
@@ -82,6 +84,7 @@ export function useExportWorkbook() {
           faults: faults.data ?? [],
           jobs: jobs.data ?? [],
           stock: stock.data ?? [],
+          movements: movements.data ?? [],
           totals: (totals.data ?? null) as DashboardCounts | null,
           categories: categories.data ?? [],
         }),

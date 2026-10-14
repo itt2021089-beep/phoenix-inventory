@@ -11,6 +11,7 @@ import { SERVICE_COLUMNS, serviceRows } from '@/features/service/filters'
 import { assetRegisterRow, ASSET_REGISTER_COLUMNS } from '@/features/assets/filters'
 import type { AssetListRow, TimelineRow } from '@/features/assets/api'
 import { CHANGE_TYPE_LABELS, labelOf } from '@/lib/constants'
+import { inOut, needsReorder } from '@/features/stock/stockForm'
 import type { Sheet } from '@/lib/excel'
 import { formatDate } from '@/lib/format'
 
@@ -65,6 +66,7 @@ export function changeLogRow(r: ChangeLogExportRow): (string | number)[] {
 }
 
 export type StockRow = {
+  id: number
   item_code: string
   name: string
   qty_on_hand: number
@@ -72,16 +74,19 @@ export type StockRow = {
   notes: string | null
 }
 
-export function consumablesRow(s: StockRow): (string | number)[] {
+/** Received and issued come from the stock movements; received - issued = in stock. */
+export function consumablesRow(
+  s: StockRow,
+  totals: { received: number; issued: number } = { received: 0, issued: 0 },
+): (string | number)[] {
   return [
     s.item_code,
     s.name,
-    // Received and issued are counted from stock movements, which arrive in Phase 2.
-    '',
-    '',
+    totals.received,
+    totals.issued,
     s.qty_on_hand,
     s.reorder_level,
-    s.qty_on_hand <= s.reorder_level ? 'REORDER' : '',
+    needsReorder(s) ? 'REORDER' : 'OK',
     s.notes ?? '',
   ]
 }
@@ -134,6 +139,7 @@ export function buildSheets(data: {
   faults?: FaultRow[]
   jobs?: ServiceJobRow[]
   stock: StockRow[]
+  movements?: { stock_item_id: number; qty_change: number }[]
   totals: DashboardCounts | null
   categories: CategorySummaryRow[]
 }): Sheet[] {
@@ -155,7 +161,13 @@ export function buildSheets(data: {
       columns: SERVICE_LOG_COLUMNS,
       rows: serviceRows([...(data.jobs ?? [])].reverse()),
     },
-    { name: 'Consumables', columns: CONSUMABLES_COLUMNS, rows: data.stock.map(consumablesRow) },
+    {
+      name: 'Consumables',
+      columns: CONSUMABLES_COLUMNS,
+      rows: data.stock.map((s) =>
+        consumablesRow(s, inOut((data.movements ?? []).filter((m) => m.stock_item_id === s.id))),
+      ),
+    },
     {
       name: 'Dashboard',
       columns: DASHBOARD_COLUMNS,
