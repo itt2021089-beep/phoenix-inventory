@@ -7,25 +7,27 @@
    tailwind.config.js. */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  /* An off-white page behind white cards, so each section reads as its own block. */
+  --background: oklch(0.975 0.003 250);
+  --foreground: oklch(0.2 0.02 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: oklch(0.2 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.2 0.02 260);
+  /* One brand colour (a calm blue): the active menu item, main buttons, links, focus. */
+  --primary: oklch(0.5 0.16 258);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
+  --secondary: oklch(0.955 0.006 250);
+  --secondary-foreground: oklch(0.25 0.02 260);
+  --muted: oklch(0.955 0.006 250);
+  --muted-foreground: oklch(0.5 0.02 260);
+  --accent: oklch(0.95 0.01 250);
+  --accent-foreground: oklch(0.25 0.02 260);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
+  --border: oklch(0.9 0.008 250);
+  --input: oklch(0.88 0.01 250);
+  --ring: oklch(0.6 0.14 258);
 }
 
 .dark {
@@ -35,8 +37,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
+  --primary: oklch(0.72 0.13 258);
+  --primary-foreground: oklch(0.18 0.02 260);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.274 0.006 286.033);
@@ -47,7 +49,7 @@
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
+  --ring: oklch(0.72 0.13 258);
 }
 
 @theme inline {
@@ -85,6 +87,18 @@
   }
 }
 
+/* Tag and number links (PBS-LAP-001, FLT-0001, CHG-0001, HO-0001) inside the app: plain
+   brand-coloured text, underlined only on hover, instead of small underlined code. Unlayered,
+   so it wins over the `underline` utility those links carry. Print pages have no <main>. */
+main a.font-mono {
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration-line: none;
+}
+main a.font-mono:hover {
+  text-decoration-line: underline;
+}
+
 /* A4 print pages under /print/... (CLAUDE.md: print with the browser, no PDF library). */
 @page {
   size: A4 portrait;
@@ -97,6 +111,10 @@
 }
 
 @media print {
+  /* The off-white app background must not print as a grey tint. */
+  body {
+    background: white;
+  }
   .handover-sheet {
     width: auto;
     min-height: 0;
