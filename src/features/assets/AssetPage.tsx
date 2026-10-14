@@ -15,6 +15,7 @@ import { formatDate, formatDateTime, formatMoney } from '@/lib/format'
 
 import { useAsset, useTimeline } from './api'
 import { EndOfLifePanel, MovePanel, OpenFaultPanel } from './AssetActionPanels'
+import { AssetPhotos } from './AssetPhotos'
 import { RepairHistory } from './RepairHistory'
 import { changeExtras, changeTitle, describeChange } from './timeline'
 
@@ -198,6 +199,8 @@ export function AssetPage() {
       </Card>
 
       <RepairHistory assetId={a.id} price={a.purchase_price} />
+
+      <AssetPhotos assetId={a.id} timeline={timeline.data ?? []} />
 
       <Card>
         <CardHeader>

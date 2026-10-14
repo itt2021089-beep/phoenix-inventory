@@ -12,6 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useAuth } from '@/features/auth/useAuth'
+import { usePhotos } from '@/features/photos/api'
+import { PhotoGallery } from '@/features/photos/PhotoGallery'
+import { PhotoUpload } from '@/features/photos/PhotoUpload'
 import { SERVICE_JOB_TYPE_LABELS, labelOf } from '@/lib/constants'
 import { formatDate, formatMoney } from '@/lib/format'
 
@@ -21,7 +25,10 @@ import { jobCost } from './filters'
 export function ServiceJobPage() {
   const { no } = useParams()
   const job = useServiceJob(no)
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
   const j = job.data
+  const invoicePhotos = usePhotos('service_job', j ? String(j.id) : undefined)
 
   if (!j) {
     return (
@@ -145,6 +152,32 @@ export function ServiceJobPage() {
           </Table>
         </CardContent>
       </Card>
+      {(isAdmin || !!invoicePhotos.data?.length) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Invoice photo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <PhotoGallery
+              photos={invoicePhotos.data ?? []}
+              label="Invoice photos"
+              emptyText="No photo of the invoice yet."
+            />
+            {isAdmin && (
+              <PhotoUpload
+                target={{
+                  entity: 'service_job',
+                  entityId: String(j.id),
+                  folderKey: j.job_no,
+                  kind: 'invoice',
+                }}
+                max={3}
+                label="Photograph the invoice"
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -13,6 +13,9 @@ import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/features/auth/useAuth'
+import { usePhotos } from '@/features/photos/api'
+import { PhotoGallery } from '@/features/photos/PhotoGallery'
+import { PhotoUpload } from '@/features/photos/PhotoUpload'
 import { usePeople } from '@/features/people/api'
 import { activeOr, useVendors } from '@/features/lookups/useLookups'
 import { CONDITION_LABELS, FAULT_CAUSE_LABELS, FAULT_STATUS_LABELS, labelOf } from '@/lib/constants'
@@ -131,6 +134,8 @@ export function FaultPage() {
           (the cost then goes on the job, not here).
         </p>
       )}
+
+      <FaultPhotos fault={f} isAdmin={isAdmin} />
 
       {isAdmin ? (
         <Investigation key={`inv-${f.id}-${f.updated_at}`} fault={f} />
@@ -573,6 +578,33 @@ function FindingReadOnly({ fault: f }: { fault: FaultRow }) {
           <Detail label="Responsible">{f.responsible?.full_name}</Detail>
           <Detail label="Notes">{f.finding_notes}</Detail>
         </dl>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Pictures of the damage, and (from Phase 3) the photo staff attach to a QR report. */
+function FaultPhotos({ fault: f, isAdmin }: { fault: FaultRow; isAdmin: boolean }) {
+  const photos = usePhotos('fault', String(f.id))
+  if (!isAdmin && !photos.data?.length) return null
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Photos</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <PhotoGallery photos={photos.data ?? []} label="Fault photos" emptyText="No photos yet." />
+        {isAdmin && (
+          <PhotoUpload
+            target={{
+              entity: 'fault',
+              entityId: String(f.id),
+              folderKey: f.fault_no,
+              kind: 'damage',
+            }}
+            label="Add photos of the damage"
+          />
+        )}
       </CardContent>
     </Card>
   )

@@ -158,12 +158,12 @@ the guard-trigger check now running because DEV has issued assets.
   - add several assets (filter by category or room), with work done and cost per line
   - next due date filled in automatically
   - warning when the line costs don't add up to the invoice total
-- [ ] **Photos** (helper resizes to 1600 px / about 200 KB before upload; private bucket; signed URLs):
-  - [ ] 1–3 condition photos at issue and at return
-  - [ ] fault photos
-  - [ ] signed handover copy
-  - [ ] invoice photo on a service job
-  - [ ] asset page: "At issue" vs "At return" photos side by side
+- [x] **Photos** (PR C, 14/10/2026; helper resizes to 1600 px / about 200 KB before upload; private bucket; signed URLs):
+  - [x] 1–3 condition photos at issue and at return
+  - [x] fault photos
+  - [x] signed handover copy
+  - [x] invoice photo on a service job
+  - [x] asset page: "At issue" vs "At return" photos side by side
 - [ ] **Stock page:** list with reorder flags; receive, issue, adjust and write off.
 - [x] Asset page: "Repair spend so far" and the service history.
 - [ ] Record the real AC job (HR room, CEO room, Sales room) as the first service job, after creating

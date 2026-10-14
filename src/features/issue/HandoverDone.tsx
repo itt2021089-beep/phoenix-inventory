@@ -1,6 +1,8 @@
 import { CheckCircle2, Printer } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { SignedCopy } from '@/features/photos/SignedCopy'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -8,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 export function HandoverDone({
   title,
   formNo,
+  photoProblem,
   tags,
   personId,
   onAgain,
@@ -15,6 +18,8 @@ export function HandoverDone({
 }: {
   title: string
   formNo: string | null
+  /** Set when the action was saved but its condition photos were not. */
+  photoProblem?: string | null
   tags: string[]
   personId?: string
   onAgain: () => void
@@ -29,6 +34,14 @@ export function HandoverDone({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="font-mono text-sm">{tags.join(', ')}</p>
+        {photoProblem && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              This was saved, but the photos were not: {photoProblem} Add them again from the
+              asset&apos;s Change Log.
+            </AlertDescription>
+          </Alert>
+        )}
         {formNo && (
           <div className="rounded-lg border bg-muted/40 p-3">
             <p className="text-sm">
@@ -40,6 +53,10 @@ export function HandoverDone({
                 <Printer /> Print handover form
               </Link>
             </Button>
+            <div className="mt-3 border-t pt-3">
+              <p className="mb-1 text-sm">After it is signed, photograph the paper copy.</p>
+              <SignedCopy formNo={formNo} />
+            </div>
           </div>
         )}
         <div className="flex flex-wrap gap-2">
