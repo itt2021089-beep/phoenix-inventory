@@ -309,9 +309,11 @@ id            bigint identity PK
 entity_type   text not null    -- 'asset' | 'change_log' | 'fault' | 'handover_form' | 'service_job'
 entity_id     text not null    -- id of that row, as text
 kind          text not null    -- photo_kind
-storage_path  text not null
+storage_path  text not null unique  -- check: in the entity's folder (assets/<id>/..., faults/<no>/...
+                                   -- or reports/<file> for a fault); no empty, "." or ".." parts
 created_at, created_by
 index on (entity_type, entity_id)
+grants: viewer reads, admin inserts; no update, no delete (like the logs)
 ```
 
 ### settings
@@ -409,7 +411,9 @@ in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the 
 
 ## Storage
 
-Bucket `photos`: private, 5 MB per file, `image/*` only.
+Bucket `photos`: private, 5 MB per file, `image/*` only. Created by the `photos` migration.
+Nobody updates (overwrites) or deletes a file: there is no policy for either. Upload with a new
+name each time. The `reports/` policy comes with the public report form in Phase 3.
 
 | Path | admin | viewer | anon |
 |---|---|---|---|
