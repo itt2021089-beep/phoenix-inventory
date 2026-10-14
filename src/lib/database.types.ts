@@ -66,6 +66,13 @@ export type Database = {
             referencedRelation: "stock_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "accessory_types_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_levels"
+            referencedColumns: ["stock_item_id"]
+          },
         ]
       }
       asset_accessories: {
@@ -95,6 +102,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_accessories_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_asset_costs"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "asset_accessories_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_due_soon"
+            referencedColumns: ["asset_id"]
           },
           {
             foreignKeyName: "asset_accessories_asset_id_fkey"
@@ -401,6 +422,20 @@ export type Database = {
             foreignKeyName: "change_log_asset_id_fkey"
             columns: ["asset_id"]
             isOneToOne: false
+            referencedRelation: "v_asset_costs"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "change_log_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_due_soon"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "change_log_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
             referencedRelation: "v_employee_holdings"
             referencedColumns: ["asset_id"]
           },
@@ -629,6 +664,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fault_log_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_asset_costs"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "fault_log_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_due_soon"
+            referencedColumns: ["asset_id"]
           },
           {
             foreignKeyName: "fault_log_asset_id_fkey"
@@ -946,6 +995,20 @@ export type Database = {
             foreignKeyName: "service_lines_asset_id_fkey"
             columns: ["asset_id"]
             isOneToOne: false
+            referencedRelation: "v_asset_costs"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "service_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_due_soon"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "service_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
             referencedRelation: "v_employee_holdings"
             referencedColumns: ["asset_id"]
           },
@@ -1110,6 +1173,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_movements_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_levels"
+            referencedColumns: ["stock_item_id"]
+          },
+          {
             foreignKeyName: "stock_movements_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
@@ -1175,7 +1245,29 @@ export type Database = {
           spend_pct: number | null
           status: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "v_category_summary"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "v_department_summary"
+            referencedColumns: ["category_id"]
+          },
+        ]
       }
       v_category_summary: {
         Row: {
@@ -1294,6 +1386,26 @@ export type Database = {
           reorder_level: number | null
           stock_item_id: number | null
           unit: string | null
+        }
+        Insert: {
+          is_active?: boolean | null
+          item_code?: string | null
+          name?: string | null
+          needs_reorder?: never
+          qty_on_hand?: number | null
+          reorder_level?: number | null
+          stock_item_id?: number | null
+          unit?: string | null
+        }
+        Update: {
+          is_active?: boolean | null
+          item_code?: string | null
+          name?: string | null
+          needs_reorder?: never
+          qty_on_hand?: number | null
+          reorder_level?: number | null
+          stock_item_id?: number | null
+          unit?: string | null
         }
         Relationships: []
       }
