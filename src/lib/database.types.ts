@@ -864,6 +864,7 @@ export type Database = {
         Args: { p_asset_id: string; p_date?: string; p_reason: string }
         Returns: undefined
       }
+      import_workbook: { Args: { p_payload: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_viewer_or_admin: { Args: never; Returns: boolean }
       issue_assets: {
