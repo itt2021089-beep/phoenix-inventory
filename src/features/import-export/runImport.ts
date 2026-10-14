@@ -12,28 +12,31 @@ export type ImportCounts = {
   changes: number
 }
 
-/**
- * The client, with import_workbook added.
- *
- * src/lib/database.types.ts is generated from the linked project, so it only learns about this
- * function after `npx supabase db push` and `npm run gen:types`. Casting the whole client, not
- * the rpc method, matters: pulling `rpc` out on its own loses its `this` and the call fails at
- * runtime with "Cannot read properties of undefined". Keeping the cast in one named place
- * leaves the rest of the app fully typed; it can go once the types are regenerated.
- */
-type ClientWithImport = {
-  rpc: (
-    name: 'import_workbook',
-    args: { p_payload: Json },
-  ) => PromiseLike<{ data: ImportCounts | null; error: { message: string } | null }>
+const COUNT_KEYS: (keyof ImportCounts)[] = [
+  'categories',
+  'locations',
+  'employees',
+  'assets',
+  'accessories',
+  'changes',
+]
+
+/** The function returns plain JSON; this checks it really is the counts before they are shown. */
+export function toImportCounts(value: Json | null): ImportCounts {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const o = value as Record<string, Json | undefined>
+    if (COUNT_KEYS.every((k) => typeof o[k] === 'number')) return o as unknown as ImportCounts
+  }
+  throw new Error(
+    'The import answered with something unexpected. Check the assets list before trying again.',
+  )
 }
 
+/** Calls import_workbook(): admin-only, one transaction, safe to repeat (docs/SCHEMA.md). */
 export async function runImport(payload: ImportPayload): Promise<ImportCounts> {
-  const client = supabase as unknown as ClientWithImport
-  const { data, error } = await client.rpc('import_workbook', {
+  const { data, error } = await supabase.rpc('import_workbook', {
     p_payload: payload as unknown as Json,
   })
   if (error) throw error
-  if (!data) throw new Error('The import returned nothing.')
-  return data
+  return toImportCounts(data)
 }

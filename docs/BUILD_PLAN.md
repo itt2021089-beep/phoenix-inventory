@@ -115,11 +115,24 @@ and the RLS checklist at the bottom passes.
   (14/10/2026: it does. 17 register rows became 11 assets and 6 accessory ticks, 6 people, 6
   locations and 11 Change Log rows, with only the two "imported in Phase 2" notes. The next
   tags it worked out, PBS-LAP-007 and PBS-HST-006, match the workbook's own Next Free Tag
-  column. Tried on a throwaway local copy of the database, not on DEV.)
+  column. First tried on a throwaway local copy of the database, then imported into DEV, which
+  now holds the same counts: 11 assets, 6 people, 11 change rows, 13 accessory ticks.)
 - issuing a laptop and a headset with Charger and Mouse ticked takes one screen and prints a correct
   HO form
+  (Tried end to end in a browser on a local copy, with fake people: one screen, HO-0001 on one
+  A4 page. Not tried on DEV, which now holds real data and has no Spare asset to issue.)
 - the export opens in Excel with the same tabs and column headers as today's workbook
+  (Compared with the original: every shared tab has identical column headers. It adds an empty
+  Service Log tab for Phase 2, and leaves out README and Lists, which were notes and dropdown
+  sources rather than data.)
 - a viewer can see everything and change nothing
+  (`npm run test:rls` passes 67/67 on DEV: every table, view and action refuses a viewer, and
+  a logged-out visitor or a user with no profile reads nothing. The browser run on the local copy
+  shows no write buttons and "Only IT can do this" on every admin URL.)
+
+**RLS checklist, 14/10/2026:** `supabase/tests/rls.sql`, `actions.sql` and `import.sql` pass on a
+local copy that mimics Supabase's default grants, and `npm run test:rls` passes 67/67 on DEV, with
+the guard-trigger check now running because DEV has issued assets.
 
 ---
 
