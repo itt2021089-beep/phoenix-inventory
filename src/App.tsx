@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router'
 
 import { AppLayout } from '@/components/AppLayout'
 import { AddAssetPage } from '@/features/assets/AddAssetPage'
@@ -28,6 +28,7 @@ import { StockListPage } from '@/features/stock/StockListPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
+import { LabelsPrintPage } from '@/features/labels/LabelsPrintPage'
 import { HandoverFormPrint } from '@/features/print/HandoverFormPrint'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 
@@ -36,6 +37,12 @@ const queryClient = new QueryClient({
     queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
   },
 })
+
+/** A logged-in person scanning a label goes to the asset itself, not the staff report form. */
+function ScanToAsset() {
+  const { tag } = useParams()
+  return <Navigate to={`/assets/${encodeURIComponent(tag ?? '')}`} replace />
+}
 
 export default function App() {
   return (
@@ -49,6 +56,10 @@ export default function App() {
             <Route element={<RequireAuth />}>
               {/* Print pages: A4, no app chrome. Viewers may print too. */}
               <Route path="print/handover/:formNo" element={<HandoverFormPrint />} />
+              <Route element={<RequireAdmin />}>
+                <Route path="print/labels" element={<LabelsPrintPage />} />
+              </Route>
+              <Route path="a/:tag" element={<ScanToAsset />} />
               <Route element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
                 <Route path="assets" element={<AssetsListPage />} />

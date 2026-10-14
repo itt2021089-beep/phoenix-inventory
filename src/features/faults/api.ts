@@ -153,6 +153,21 @@ export function useOpenFault() {
   })
 }
 
+/** One click: "this QR report was from that person". The typed name stays on the record. */
+export function useMatchReporter() {
+  const invalidate = useInvalidateFaults()
+  return useMutation({
+    mutationFn: async (args: { id: number; employeeId: string }) => {
+      const { error } = await supabase
+        .from('fault_log')
+        .update({ reported_by_employee_id: args.employeeId })
+        .eq('id', args.id)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+}
+
 export type FaultDetails = {
   status: string
   action_taken: string | null

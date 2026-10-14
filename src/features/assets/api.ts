@@ -14,7 +14,7 @@ export const assetKeys = {
 const LIST_SELECT = `
   id, asset_tag, make, model, serial_number, status, condition, date_assigned,
   specification, notes, accessories_note, category_id, department_id, location_id,
-  assigned_employee_id,
+  assigned_employee_id, label_printed_at,
   category:categories!assets_category_id_fkey ( name, tag_prefix ),
   employee:employees!assets_assigned_employee_id_fkey ( full_name, nid ),
   department:departments!assets_department_id_fkey ( name ),
@@ -38,6 +38,7 @@ export type AssetListRow = {
   department_id: number | null
   location_id: number | null
   assigned_employee_id: string | null
+  label_printed_at?: string | null
   category: { name: string; tag_prefix: string } | null
   employee: { full_name: string; nid: string } | null
   department: { name: string } | null
@@ -84,7 +85,7 @@ export function useAsset(tag: string | undefined) {
         .select(
           `${LIST_SELECT},
            custom_values, purchase_date, purchase_price, supplier_id, invoice_no, warranty_until,
-           label_printed_at, created_at, updated_at,
+           created_at, updated_at,
            supplier:vendors!assets_supplier_id_fkey ( name ),
            accessories:asset_accessories ( accessory_type_id, accessory_types ( name ) )`,
         )

@@ -192,23 +192,23 @@ the guard-trigger check now running because DEV has issued assets.
 
 ## Phase 3: QR labels and staff fault reports
 
-- [ ] Route `/a/:tag`:
+- [x] Route `/a/:tag`:
   - logged in → the asset page
   - logged out → the public report page
 - [x] RPCs `get_public_asset` and `submit_fault_report` (with the rate limit), plus the anon storage
   policy for `reports/` (Phase 3 PR A, 15/10/2026; also `ping`). Two limits (Sahan, 15/10/2026):
   3 QR reports per asset per hour, and 20 an hour across all assets (`report_rate_limit_total`).
   Only logged-out callers may file a report; a viewer writes nothing.
-- [ ] **Public report page** (must work on a cheap Android phone and on mobile data):
+- [x] **Public report page** (Phase 3 PR B, 15/10/2026; must work on a cheap Android phone and on mobile data):
   - load it as its own small chunk (route-level `React.lazy`), without the admin app: in Phase 1
     the main bundle is ~220 kB gzipped, mostly react-dom, supabase-js, zod and react-router
   - shows tag, category, make and model only
   - fields: your name, what's wrong, optional photo
   - a thank-you screen with the FLT number
-- [ ] Fault inbox:
+- [x] Fault inbox:
   - "New from QR" badge
   - match `reported_by_name` to an employee in one click
-- [ ] **Label printing page:**
+- [x] **Label printing page:**
   - choose tags, or "all assets without a printed label"
   - sets `label_printed_at`
   - see the label spec below
@@ -216,6 +216,21 @@ the guard-trigger check now running because DEV has issued assets.
 **Done when:**
 - scanning a label with a logged-out phone files a report that appears in the inbox
 - logged-out REST calls with the publishable key return nothing from any table or view
+
+**Phase 3 checks, 15/10/2026** (production build on a local copy shaped like Supabase, fake people;
+DEV untouched except by `npm run test:rls`, whose logged-out checks only make calls that must be
+refused):
+- a logged-out phone opened `/a/<tag>`, saw only tag, category, make and model (no name, no NID),
+  sent a report with a 1.7 MB photo (stored at about 200 KB under `reports/`), got its FLT number,
+  and the report appeared in the inbox with a "New from QR" badge; one click matched the typed
+  name to a person without touching who held the item
+- the fourth report on one asset within an hour was refused in words (HTTP 429)
+- logged-out REST calls on 12 tables and views were refused, three write functions were refused,
+  and an upload outside `reports/` was refused
+- the labels page printed one A4 sheet; the QR holds only `<app URL>/a/<tag>`; a part-used sheet
+  and other label sizes lay out correctly; labels are marked printed only after Sahan confirms
+- still to prove on DEV by Sahan: a real scan from a logged-out phone (the real Storage rule for
+  `reports/`), and printing a real sticker sheet
 
 ---
 
