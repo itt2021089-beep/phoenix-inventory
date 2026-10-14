@@ -3,6 +3,7 @@ import { useParams } from 'react-router'
 
 import { QueryState } from '@/components/QueryState'
 import { Button } from '@/components/ui/button'
+import { SignedCopy } from '@/features/photos/SignedCopy'
 import { formatDate } from '@/lib/format'
 
 import { ACKNOWLEDGEMENT, box, formLines, padRows } from './handoverForm'
@@ -207,6 +208,12 @@ export function HandoverFormPrint() {
           Original → IT file. Copy → employee.
         </footer>
       </article>
+
+      {/* Screen only: the signed paper copy, once someone has photographed it. */}
+      <section className="mx-auto max-w-[210mm] p-3 print:hidden" aria-label="Signed copy">
+        <h2 className="mb-2 text-sm font-medium">Signed copy</h2>
+        <SignedCopy formNo={f.form_no} />
+      </section>
     </div>
   )
 }

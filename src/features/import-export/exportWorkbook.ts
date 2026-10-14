@@ -2,9 +2,12 @@
  * The full Excel export: the same tabs and column headers as Sahan's workbook
  * (docs/BUILD_PLAN.md -> Spec: Excel export), so it opens looking like the file it replaced.
  *
- * Fault Log and Service Log exist as tabs with their headers from Phase 1, and fill up in
- * Phase 2 when faults and service jobs arrive. An empty tab keeps the workbook's shape.
+ * Fault Log and Service Log keep the workbook's shape even when there is nothing in them.
  */
+import { type FaultRow } from '@/features/faults/api'
+import { FAULT_COLUMNS, faultRow } from '@/features/faults/filters'
+import type { ServiceJobRow } from '@/features/service/api'
+import { SERVICE_COLUMNS, serviceRows } from '@/features/service/filters'
 import { assetRegisterRow, ASSET_REGISTER_COLUMNS } from '@/features/assets/filters'
 import type { AssetListRow, TimelineRow } from '@/features/assets/api'
 import { CHANGE_TYPE_LABELS, labelOf } from '@/lib/constants'
@@ -22,34 +25,9 @@ export const CHANGE_LOG_COLUMNS = [
   'Handover Form No',
 ] as const
 
-export const FAULT_LOG_COLUMNS = [
-  'Fault ID',
-  'Asset Tag',
-  'Date Reported',
-  'Reported By',
-  'Fault / Issue',
-  'Action Taken',
-  'Cost (LKR)',
-  'Date Closed',
-  'Status',
-  'Remarks',
-  'Vendor',
-  'Under Warranty',
-  'Cause',
-  'Responsible',
-] as const
-
-export const SERVICE_LOG_COLUMNS = [
-  'Job No',
-  'Date',
-  'Vendor',
-  'Type',
-  'Asset Tag',
-  'Location',
-  'Work Done',
-  'Cost (LKR)',
-  'Next Due',
-] as const
+// The Fault Log and Service Log tabs use the same columns as their list pages' exports.
+export const FAULT_LOG_COLUMNS = FAULT_COLUMNS
+export const SERVICE_LOG_COLUMNS = SERVICE_COLUMNS
 
 export const CONSUMABLES_COLUMNS = [
   'Item Code',
@@ -153,6 +131,8 @@ export function dashboardRows(
 export function buildSheets(data: {
   assets: AssetListRow[]
   changes: ChangeLogExportRow[]
+  faults?: FaultRow[]
+  jobs?: ServiceJobRow[]
   stock: StockRow[]
   totals: DashboardCounts | null
   categories: CategorySummaryRow[]
@@ -164,8 +144,17 @@ export function buildSheets(data: {
       rows: data.assets.map(assetRegisterRow),
     },
     { name: 'Change Log', columns: CHANGE_LOG_COLUMNS, rows: data.changes.map(changeLogRow) },
-    { name: 'Fault Log', columns: FAULT_LOG_COLUMNS, rows: [] },
-    { name: 'Service Log', columns: SERVICE_LOG_COLUMNS, rows: [] },
+    {
+      name: 'Fault Log',
+      columns: FAULT_LOG_COLUMNS,
+      // Oldest first, like the workbook, so FLT-0001 is the first row.
+      rows: [...(data.faults ?? [])].reverse().map(faultRow),
+    },
+    {
+      name: 'Service Log',
+      columns: SERVICE_LOG_COLUMNS,
+      rows: serviceRows([...(data.jobs ?? [])].reverse()),
+    },
     { name: 'Consumables', columns: CONSUMABLES_COLUMNS, rows: data.stock.map(consumablesRow) },
     {
       name: 'Dashboard',

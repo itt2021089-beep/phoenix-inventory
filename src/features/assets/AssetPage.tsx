@@ -14,10 +14,12 @@ import { customFieldsOf } from '@/lib/db'
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format'
 
 import { useAsset, useTimeline } from './api'
-import { EndOfLifePanel, MovePanel } from './AssetActionPanels'
+import { EndOfLifePanel, MovePanel, OpenFaultPanel } from './AssetActionPanels'
+import { AssetPhotos } from './AssetPhotos'
+import { RepairHistory } from './RepairHistory'
 import { changeExtras, changeTitle, describeChange } from './timeline'
 
-type Panel = null | 'move' | 'retire' | 'dispose'
+type Panel = null | 'move' | 'fault' | 'retire' | 'dispose'
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   if (children === null || children === undefined || children === '') return null
@@ -118,6 +120,11 @@ export function AssetPage() {
             </Button>
           )}
           {active && (
+            <Button variant="outline" onClick={() => setPanel('fault')}>
+              Open fault
+            </Button>
+          )}
+          {active && (
             <Button variant="outline" onClick={() => setPanel('move')}>
               Move
             </Button>
@@ -135,6 +142,7 @@ export function AssetPage() {
         </div>
       )}
 
+      {panel === 'fault' && <OpenFaultPanel asset={a} onDone={() => setPanel(null)} />}
       {panel === 'move' && <MovePanel asset={a} onDone={() => setPanel(null)} />}
       {(panel === 'retire' || panel === 'dispose') && (
         <EndOfLifePanel asset={a} kind={panel} onDone={() => setPanel(null)} />
@@ -189,6 +197,10 @@ export function AssetPage() {
           {a.notes && <p className="mt-3 border-t pt-3 text-sm whitespace-pre-wrap">{a.notes}</p>}
         </CardContent>
       </Card>
+
+      <RepairHistory assetId={a.id} price={a.purchase_price} />
+
+      <AssetPhotos assetId={a.id} timeline={timeline.data ?? []} />
 
       <Card>
         <CardHeader>

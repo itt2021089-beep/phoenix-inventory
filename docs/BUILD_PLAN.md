@@ -138,34 +138,34 @@ the guard-trigger check now running because DEV has issued assets.
 
 ## Phase 2: Faults, services, photos, consumables
 
-- [ ] Migration `stock_movements` plus its trigger. Turn on the accessory → stock link in issue and
+- [x] Migration `stock_movements` plus its trigger. Turn on the accessory → stock link in issue and
   return.
   - Stock never goes below 0: an issue that would do so is refused with the reason ("Optical mouse
     stock is 0. Untick Mouse, or receive stock first"), and nothing is saved (Sahan, 14/10/2026).
-- [ ] Import the workbook's Fault Log tab and the Consumables opening movements (deferred from
+- [x] Import the workbook's Fault Log tab and the Consumables opening movements (deferred from
   Phase 1), extending `import_workbook`.
-- [ ] Migration `faults_and_service`: fault_log, service_jobs, service_lines and their RPCs
+- [x] Migration `faults_and_service`: fault_log, service_jobs, service_lines and their RPCs
   (`record_service_job`, `send_for_repair`, `back_from_repair`).
   - Create service_lines before fault_log, or add the `service_line_id` FK afterwards.
-- [ ] **Fault inbox and fault page:**
+- [x] **Fault inbox and fault page** (PR B, 14/10/2026):
   - status flow Open → In Progress → With Vendor → Closed
   - vendor and cost, plus an "Under warranty" tick
   - **Investigation** section (admin only): cause, responsible person, notes
   - "Fixed in service job" link: forces the fault's cost to 0
-- [ ] Open a fault directly from the Return screen and from the asset page.
-- [ ] **New service job screen:**
+- [x] Open a fault directly from the Return screen and from the asset page.
+- [x] **New service job screen:**
   - vendor, date, type, invoice no, invoice total
   - add several assets (filter by category or room), with work done and cost per line
   - next due date filled in automatically
   - warning when the line costs don't add up to the invoice total
-- [ ] **Photos** (helper resizes to 1600 px / about 200 KB before upload; private bucket; signed URLs):
-  - [ ] 1–3 condition photos at issue and at return
-  - [ ] fault photos
-  - [ ] signed handover copy
-  - [ ] invoice photo on a service job
-  - [ ] asset page: "At issue" vs "At return" photos side by side
+- [x] **Photos** (PR C, 14/10/2026; helper resizes to 1600 px / about 200 KB before upload; private bucket; signed URLs):
+  - [x] 1–3 condition photos at issue and at return
+  - [x] fault photos
+  - [x] signed handover copy
+  - [x] invoice photo on a service job
+  - [x] asset page: "At issue" vs "At return" photos side by side
 - [ ] **Stock page:** list with reorder flags; receive, issue, adjust and write off.
-- [ ] Asset page: "Repair spend so far" and the service history.
+- [x] Asset page: "Repair spend so far" and the service history.
 - [ ] Record the real AC job (HR room, CEO room, Sales room) as the first service job, after creating
   the AC assets.
 

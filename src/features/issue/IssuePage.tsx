@@ -20,6 +20,10 @@ import { todayInColombo } from '@/lib/format'
 
 import { AssetPicker } from './AssetPicker'
 import { type IssueLine, issueItems } from './handover'
+import { attachConditionPhotos } from '@/features/photos/api'
+import { PhotoPicker } from '@/features/photos/PhotoPicker'
+import { MAX_CONDITION_PHOTOS } from '@/lib/photos'
+
 import { HandoverDone } from './HandoverDone'
 import { HandoverTabs } from './HandoverTabs'
 import { PersonPicker } from './PersonPicker'
@@ -30,6 +34,7 @@ const lineFor = (a: AssetListRow): IssueLine => ({
   assetId: a.id,
   condition: a.condition as Condition,
   accessoryTypeIds: a.asset_accessories.map((x) => x.accessory_type_id),
+  photos: [],
 })
 
 export function IssuePage() {
@@ -89,10 +94,12 @@ function IssueForm({
   const [date, setDate] = useState(todayInColombo())
   const [reason, setReason] = useState('')
   const [makeForm, setMakeForm] = useState(true)
+  const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState<{
     formNo: string | null
     tags: string[]
     personId: string
+    photoProblem: string | null
   } | null>(null)
 
   function choosePerson(p: PersonRow | null) {
@@ -117,12 +124,21 @@ function IssueForm({
         makeForm,
       },
       {
-        onSuccess: (formNo) =>
+        onSuccess: async (formNo) => {
+          // The issue is saved; the condition photos go up next, against its Change Log rows.
+          setUploading(lines.some((l) => l.photos.length))
+          const photoProblem = await attachConditionPhotos(
+            lines.map((l) => ({ assetId: l.assetId, files: l.photos })),
+            'issued',
+          )
+          setUploading(false)
           setDone({
             formNo,
             tags: lines.map((l) => byId.get(l.assetId)?.asset_tag ?? ''),
             personId: person.id,
-          }),
+            photoProblem,
+          })
+        },
       },
     )
   }
@@ -136,6 +152,7 @@ function IssueForm({
           formNo={done.formNo}
           tags={done.tags}
           personId={done.personId}
+          photoProblem={done.photoProblem}
           againLabel="Issue something else"
           onAgain={() => {
             setDone(null)
@@ -236,6 +253,16 @@ function IssueForm({
                       ))}
                     </div>
                   </fieldset>
+                  <div>
+                    <p className="mb-1 text-sm font-medium">Condition photos</p>
+                    <PhotoPicker
+                      files={l.photos}
+                      onChange={(photos) => setLine(i, { photos })}
+                      max={MAX_CONDITION_PHOTOS}
+                      label={`Add photos of ${a?.asset_tag}`}
+                      disabled={issue.isPending || uploading}
+                    />
+                  </div>
                 </div>
               )
             })}
@@ -303,13 +330,15 @@ function IssueForm({
         <Button
           type="submit"
           size="lg"
-          disabled={!person || !lines.length || !date || issue.isPending}
+          disabled={!person || !lines.length || !date || issue.isPending || uploading}
         >
-          {issue.isPending
-            ? 'Saving...'
-            : lines.length
-              ? `Issue ${lines.length} item${lines.length === 1 ? '' : 's'}${person ? ` to ${person.full_name}` : ''}`
-              : 'Pick a person and at least one asset'}
+          {uploading
+            ? 'Saving photos...'
+            : issue.isPending
+              ? 'Saving...'
+              : lines.length
+                ? `Issue ${lines.length} item${lines.length === 1 ? '' : 's'}${person ? ` to ${person.full_name}` : ''}`
+                : 'Pick a person and at least one asset'}
         </Button>
       </form>
     </div>
