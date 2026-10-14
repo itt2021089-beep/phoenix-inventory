@@ -403,3 +403,90 @@ describe('3. admin: stock', () => {
     expect(error?.message).toMatch(/only through a movement/)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Phase 3: what a logged-out phone may do after scanning a QR label. Every report attempted
+// here is one that must be refused, so DEV gains no faults and no files.
+// ---------------------------------------------------------------------------
+describe('1. logged out: the QR report functions', () => {
+  const anon = client()
+
+  it('ping answers', async () => {
+    const { data, error } = await anon.rpc('ping')
+    expect(error).toBeNull()
+    expect(data).toBe(1)
+  })
+
+  it('get_public_asset gives tag, category, make and model only, or nothing', async () => {
+    const unknown = await anon.rpc('get_public_asset', { p_tag: 'PBS-NOPE-999' })
+    expect(unknown.error).toBeNull()
+    expect(unknown.data).toEqual([])
+
+    // Any real tag will do; read it as the viewer would, without printing it.
+    const { data: rows, error } = await anon.rpc('get_public_asset', { p_tag: 'PBS-LAP-001' })
+    expect(error).toBeNull()
+    for (const row of (rows ?? []) as Record<string, unknown>[]) {
+      expect(Object.keys(row).sort()).toEqual(['asset_tag', 'category', 'make', 'model'])
+    }
+  })
+
+  it('submit_fault_report refuses an unknown tag', async () => {
+    const { error } = await anon.rpc('submit_fault_report', {
+      p_tag: 'PBS-NOPE-999',
+      p_reporter_name: 'RLS test',
+      p_description: 'RLS test, must be refused',
+    })
+    expect(error?.message).toMatch(/not recognised/)
+  })
+
+  it('submit_fault_report refuses a missing name before anything is saved', async () => {
+    const { error } = await anon.rpc('submit_fault_report', {
+      p_tag: 'PBS-LAP-001',
+      p_reporter_name: '   ',
+      p_description: 'RLS test, must be refused',
+    })
+    expect(error?.message).toMatch(/Please enter your name/)
+  })
+
+  it('submit_fault_report refuses a photo path that was never uploaded', async () => {
+    const { error } = await anon.rpc('submit_fault_report', {
+      p_tag: 'PBS-LAP-001',
+      p_reporter_name: 'RLS test',
+      p_description: 'RLS test, must be refused',
+      p_photo_path: 'reports/00000000-0000-0000-0000-000000000000.jpg',
+    })
+    expect(error?.message).toMatch(/photo did not upload/)
+  })
+
+  it('cannot upload outside reports/ or under a name that is not random', async () => {
+    for (const path of ['assets/rls-test/anon.png', 'reports/rls-test.jpg']) {
+      const { error } = await anon.storage.from('photos').upload(path, TINY_PNG)
+      expect(error?.message, path).toMatch(/row-level security/)
+    }
+  })
+
+  it('cannot list or read the reports folder', async () => {
+    const { data, error } = await anon.storage.from('photos').list('reports')
+    if (!error) expect(data ?? []).toHaveLength(0)
+  })
+})
+
+describe('2. viewer: the QR report is for logged-out phones only', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('VIEWER')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it('cannot file a report (viewers write nothing)', async () => {
+    const { error } = await s.c.rpc('submit_fault_report', {
+      p_tag: 'PBS-LAP-001',
+      p_reporter_name: 'RLS test',
+      p_description: 'RLS test, must be refused',
+    })
+    expect(error?.code, error?.message).toBe(PERMISSION_DENIED)
+  })
+
+  it('can still look up a tag', async () => {
+    const { error } = await s.c.rpc('get_public_asset', { p_tag: 'PBS-LAP-001' })
+    expect(error).toBeNull()
+  })
+})

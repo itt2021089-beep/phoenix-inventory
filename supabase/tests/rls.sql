@@ -161,7 +161,22 @@ begin
       reset role;
     end loop;
 
-    -- 1. anon may execute only the three public functions (none exist before Phase 3).
+    -- 1. The three public functions exist and anon can call them (Phase 3)...
+    for fn in
+      select p.oid, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname in ('get_public_asset', 'submit_fault_report', 'ping')
+    loop
+      if not has_function_privilege('anon', fn.oid, 'execute') then
+        failures := array_append(failures, format('anon cannot execute the public %s()', fn.proname));
+      end if;
+    end loop;
+    -- ...and a logged-in user (a viewer) cannot file a report: viewers write nothing.
+    if exists (select 1 from pg_proc where proname = 'submit_fault_report' and pronamespace = 'public'::regnamespace
+               and has_function_privilege('authenticated', oid, 'execute')) then
+      failures := array_append(failures, 'authenticated can execute submit_fault_report()');
+    end if;
+
+    -- 1. anon may execute only the three public functions.
     for fn in
       select p.oid, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public'
