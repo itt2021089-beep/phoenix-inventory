@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { Field } from '@/components/Field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -10,6 +11,8 @@ import { activeOr, useDepartments, useLocations } from '@/features/lookups/useLo
 import { COMMON } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
 import { todayInColombo } from '@/lib/format'
+
+import { useOpenFault } from '@/features/faults/api'
 
 import type { AssetDetail } from './api'
 import { useEndOfLife, useMoveAsset } from './useAssetActions'
@@ -198,6 +201,85 @@ export function EndOfLifePanel({
             </Button>
           </div>
         </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Open a fault on this asset. Whoever holds it now is filled in by the database. */
+export function OpenFaultPanel({ asset, onDone }: { asset: AssetDetail; onDone: () => void }) {
+  const open = useOpenFault()
+  const [description, setDescription] = useState('')
+  const [date, setDate] = useState(todayInColombo())
+  const [opened, setOpened] = useState<string | null>(null)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Open a fault on {asset.asset_tag}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {opened ? (
+          <div className="space-y-3">
+            <p role="status" className="text-sm">
+              {opened} opened.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild>
+                <Link to={`/faults/${opened}`}>Open {opened}</Link>
+              </Button>
+              <Button variant="outline" onClick={onDone}>
+                Close
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form
+            className="grid gap-4 sm:grid-cols-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              open.mutate(
+                { assetId: asset.id, description: description.trim(), date },
+                { onSuccess: setOpened },
+              )
+            }}
+          >
+            <Field label="What's wrong" htmlFor="fault-description" className="sm:col-span-2">
+              <Input
+                id="fault-description"
+                value={description}
+                autoFocus
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </Field>
+            <Field label="Date reported" htmlFor="fault-date">
+              <Input
+                id="fault-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </Field>
+            {asset.employee && (
+              <p className="self-end text-sm text-muted-foreground">
+                Held by {asset.employee.full_name} at the moment; that is recorded with the fault.
+              </p>
+            )}
+            {open.error && (
+              <Alert variant="destructive" className="sm:col-span-2">
+                <AlertDescription>{errorMessage(open.error)}</AlertDescription>
+              </Alert>
+            )}
+            <div className="flex gap-2 sm:col-span-2">
+              <Button type="submit" disabled={!description.trim() || open.isPending}>
+                {open.isPending ? 'Saving...' : 'Open fault'}
+              </Button>
+              <Button type="button" variant="outline" onClick={onDone}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        )}
       </CardContent>
     </Card>
   )

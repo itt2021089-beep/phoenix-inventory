@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Boxes,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   FileSpreadsheet,
@@ -35,6 +36,7 @@ const NAV: NavItem[] = [
   { to: '/issue', label: 'Issue / Return', short: 'Issue', icon: ArrowLeftRight, adminOnly: true },
   { to: '/people', label: 'People', icon: Users },
   { to: '/faults', label: 'Faults', icon: Wrench, desktopOnly: true },
+  { to: '/service', label: 'Service', icon: ClipboardList, desktopOnly: true },
   { to: '/export', label: 'Excel', icon: FileSpreadsheet, desktopOnly: true },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]

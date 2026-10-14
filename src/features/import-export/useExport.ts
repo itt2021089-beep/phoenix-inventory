@@ -1,6 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
 
 import type { AssetListRow } from '@/features/assets/api'
+import { FAULT_SELECT, type FaultRow } from '@/features/faults/api'
+import { JOB_SELECT, type ServiceJobRow } from '@/features/service/api'
 import { downloadWorkbook, exportFileName } from '@/lib/excel'
 import { todayInColombo } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
@@ -38,13 +40,25 @@ const CHANGE_SELECT = `
 export function useExportWorkbook() {
   return useMutation({
     mutationFn: async () => {
-      const [assets, changes, stock, totals, categories] = await Promise.all([
+      const [assets, changes, faults, jobs, stock, totals, categories] = await Promise.all([
         supabase.from('assets').select(ASSET_SELECT).order('asset_tag').returns<AssetListRow[]>(),
         supabase
           .from('change_log')
           .select(CHANGE_SELECT)
           .order('id')
           .returns<ChangeLogExportRow[]>(),
+        supabase
+          .from('fault_log')
+          .select(FAULT_SELECT)
+          .order('date_reported', { ascending: false })
+          .order('id', { ascending: false })
+          .returns<FaultRow[]>(),
+        supabase
+          .from('service_jobs')
+          .select(JOB_SELECT)
+          .order('service_date', { ascending: false })
+          .order('id', { ascending: false })
+          .returns<ServiceJobRow[]>(),
         supabase
           .from('stock_items')
           .select('item_code, name, qty_on_hand, reorder_level, notes')
@@ -57,13 +71,16 @@ export function useExportWorkbook() {
           .order('category')
           .returns<CategorySummaryRow[]>(),
       ])
-      for (const r of [assets, changes, stock, totals, categories]) if (r.error) throw r.error
+      for (const r of [assets, changes, faults, jobs, stock, totals, categories])
+        if (r.error) throw r.error
 
       await downloadWorkbook(
         exportFileName('IT_Asset_Inventory_Phoenix_BPO', todayInColombo()),
         buildSheets({
           assets: assets.data ?? [],
           changes: changes.data ?? [],
+          faults: faults.data ?? [],
+          jobs: jobs.data ?? [],
           stock: stock.data ?? [],
           totals: (totals.data ?? null) as DashboardCounts | null,
           categories: categories.data ?? [],
