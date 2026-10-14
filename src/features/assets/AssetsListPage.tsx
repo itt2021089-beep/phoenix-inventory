@@ -1,4 +1,4 @@
-import { Download, Plus } from 'lucide-react'
+import { Download, Plus, QrCode } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
@@ -100,6 +100,14 @@ export function AssetsListPage() {
               <Download />
               {exporting ? 'Exporting...' : 'Export to Excel'}
             </Button>
+            {isAdmin && (
+              <Button variant="outline" asChild>
+                <Link to="/print/labels?unprinted=1">
+                  <QrCode />
+                  Print QR labels
+                </Link>
+              </Button>
+            )}
             {isAdmin && (
               <Button asChild>
                 <Link to="/assets/new">

@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react'
+import { Download, QrCode } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
@@ -22,7 +22,16 @@ import { formatDate, formatMoney, todayInColombo } from '@/lib/format'
 
 import { reporterName, useFaults } from './api'
 import { FaultStatusBadge } from './FaultStatusBadge'
-import { EMPTY_FAULT_FILTERS, FAULT_COLUMNS, faultRow, filterFaults } from './filters'
+import { EMPTY_FAULT_FILTERS, FAULT_COLUMNS, faultRow, filterFaults, isNewFromQr } from './filters'
+
+/** A report a staff member sent from a QR label that nobody has opened yet. */
+function QrBadge() {
+  return (
+    <span className="ml-2 inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-1.5 py-0.5 align-middle font-sans text-[11px] font-medium whitespace-nowrap text-violet-800 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-200">
+      <QrCode className="size-3" /> New from QR
+    </span>
+  )
+}
 
 /** The fault inbox: everything not Closed, newest first. Faults are opened from Return, the asset page or (Phase 3) a QR scan. */
 export function FaultsListPage() {
@@ -83,6 +92,7 @@ export function FaultsListPage() {
           onChange={(e) => setFilter('status', e.target.value)}
         >
           <option value="open">Not closed</option>
+          <option value="new_qr">New from QR</option>
           {Object.entries(FAULT_STATUS_LABELS).map(([code, label]) => (
             <option key={code} value={code}>
               {label}
@@ -134,6 +144,7 @@ export function FaultsListPage() {
                       <Link to={`/faults/${f.fault_no}`} onClick={(e) => e.stopPropagation()}>
                         {f.fault_no}
                       </Link>
+                      {isNewFromQr(f) && <QrBadge />}
                     </TableCell>
                     <TableCell className="font-mono text-xs">{f.asset?.asset_tag}</TableCell>
                     <TableCell className="hidden sm:table-cell">

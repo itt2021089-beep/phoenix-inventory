@@ -11,6 +11,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // A staff phone that scans a QR label gets the service worker too. Without this it would
+        // quietly download the whole admin app and the Excel library in the background, on
+        // mobile data. They are still fetched (and cached by the browser) the first time the
+        // admin opens them; the app needs the network for Supabase anyway.
+        globIgnores: ['**/App-*.js', '**/exceljs*.js'],
+      },
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Phoenix Inventory',
