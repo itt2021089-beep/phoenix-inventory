@@ -13,6 +13,9 @@ import { RequireAdmin } from '@/features/auth/RequireAdmin'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { PlaceholderPage } from '@/features/dashboard/PlaceholderPage'
+import { IssuePage } from '@/features/issue/IssuePage'
+import { ReturnPage } from '@/features/issue/ReturnPage'
+import { TransferPage } from '@/features/issue/TransferPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
@@ -47,19 +50,9 @@ export default function App() {
                   <Route path="assets/:tag/edit" element={<EditAssetPage />} />
                   <Route path="people/new" element={<PersonFormPage />} />
                   <Route path="people/:id/edit" element={<PersonFormPage />} />
-                  {/* Built in the next PR (Phase 1, PR C). */}
-                  <Route
-                    path="issue"
-                    element={<PlaceholderPage title="Issue" phase="the next update" />}
-                  />
-                  <Route
-                    path="return"
-                    element={<PlaceholderPage title="Return" phase="the next update" />}
-                  />
-                  <Route
-                    path="transfer"
-                    element={<PlaceholderPage title="Transfer" phase="the next update" />}
-                  />
+                  <Route path="issue" element={<IssuePage />} />
+                  <Route path="return" element={<ReturnPage />} />
+                  <Route path="transfer" element={<TransferPage />} />
                 </Route>
                 <Route path="faults" element={<PlaceholderPage title="Faults" phase="Phase 2" />} />
                 <Route

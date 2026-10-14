@@ -19,7 +19,7 @@ const LIST_SELECT = `
   employee:employees!assets_assigned_employee_id_fkey ( full_name, nid ),
   department:departments!assets_department_id_fkey ( name ),
   location:locations!assets_location_id_fkey ( name ),
-  asset_accessories ( accessory_types ( name ) )
+  asset_accessories ( accessory_type_id, accessory_types ( name ) )
 `
 
 export type AssetListRow = {
@@ -42,7 +42,7 @@ export type AssetListRow = {
   employee: { full_name: string; nid: string } | null
   department: { name: string } | null
   location: { name: string } | null
-  asset_accessories: { accessory_types: { name: string } | null }[]
+  asset_accessories: { accessory_type_id: number; accessory_types: { name: string } | null }[]
 }
 
 export function useAssetList() {

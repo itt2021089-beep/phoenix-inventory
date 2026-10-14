@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Boxes,
   LayoutDashboard,
   LogOut,
@@ -7,7 +8,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useLocation } from 'react-router'
 
 import { useAuth } from '@/features/auth/useAuth'
 import { USER_ROLE_LABELS } from '@/lib/constants'
@@ -16,20 +17,35 @@ import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 
-type NavItem = { to: string; label: string; icon: LucideIcon }
+type NavItem = {
+  to: string
+  label: string
+  /** Shorter label for the phone's bottom bar. */
+  short?: string
+  icon: LucideIcon
+  adminOnly?: boolean
+  /** Left off the phone's five-slot bottom bar (still in the sidebar). */
+  desktopOnly?: boolean
+}
 
-/** The sections Phase 1 fills in. Everything but the dashboard is a placeholder for now. */
 const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/assets', label: 'Assets', icon: Boxes },
+  { to: '/issue', label: 'Issue / Return', short: 'Issue', icon: ArrowLeftRight, adminOnly: true },
   { to: '/people', label: 'People', icon: Users },
-  { to: '/faults', label: 'Faults', icon: Wrench },
+  { to: '/faults', label: 'Faults', icon: Wrench, desktopOnly: true },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
 /** Sidebar on a desktop, bottom nav on a phone. */
 export function AppLayout() {
   const { profile, signOut } = useAuth()
+  const { pathname } = useLocation()
+  const nav = NAV.filter((n) => !n.adminOnly || profile?.role === 'admin')
+  const phoneNav = nav.filter((n) => !n.desktopOnly)
+  // Issue, Return and Transfer are one area: keep the item lit on all three.
+  const isActiveFor = (to: string, active: boolean) =>
+    to === '/issue' ? active || /^\/(return|transfer)/.test(pathname) : active
 
   return (
     <div className="min-h-dvh md:flex">
@@ -41,7 +57,7 @@ export function AppLayout() {
         </div>
 
         <nav className="flex-1 space-y-1 p-2">
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {nav.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -49,7 +65,7 @@ export function AppLayout() {
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm',
-                  isActive
+                  isActiveFor(to, isActive)
                     ? 'bg-accent font-medium text-accent-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 )
@@ -99,8 +115,11 @@ export function AppLayout() {
         </main>
 
         {/* Phone bottom nav */}
-        <nav className="fixed inset-x-0 bottom-0 grid grid-cols-5 border-t bg-card md:hidden">
-          {NAV.map(({ to, label, icon: Icon }) => (
+        <nav
+          className="fixed inset-x-0 bottom-0 grid border-t bg-card md:hidden"
+          style={{ gridTemplateColumns: `repeat(${phoneNav.length}, minmax(0, 1fr))` }}
+        >
+          {phoneNav.map(({ to, label, short, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -108,12 +127,12 @@ export function AppLayout() {
               className={({ isActive }) =>
                 cn(
                   'flex flex-col items-center gap-1 px-1 py-2 text-[11px]',
-                  isActive ? 'text-foreground' : 'text-muted-foreground',
+                  isActiveFor(to, isActive) ? 'text-foreground' : 'text-muted-foreground',
                 )
               }
             >
               <Icon className="size-5" aria-hidden />
-              {label}
+              {short ?? label}
             </NavLink>
           ))}
         </nav>
