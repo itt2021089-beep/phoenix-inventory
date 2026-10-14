@@ -108,8 +108,8 @@ describe('the Asset Register export', () => {
       accessories_note: 'Lenovo 65W',
       notes: 'Sticker on lid',
       asset_accessories: [
-        { accessory_types: { name: 'Mouse' } },
-        { accessory_types: { name: 'Charger' } },
+        { accessory_type_id: 2, accessory_types: { name: 'Mouse' } },
+        { accessory_type_id: 1, accessory_types: { name: 'Charger' } },
       ],
     })
     expect(notesColumn(a)).toBe('Charger, Mouse | Lenovo 65W | Sticker on lid')

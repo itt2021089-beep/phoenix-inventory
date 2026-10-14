@@ -88,18 +88,18 @@ and the RLS checklist at the bottom passes.
   - "Duplicate this asset"
 - [x] **Bulk add:** category + quantity + common fields + optional serial list → creates the tags in
   one go and shows them.
-- [ ] **People:**
+- [x] **People:**
   - list, plus add/edit with NID validation (strip a leading "NIC" and spaces)
   - employee page showing what they hold, including accessories
   - "Mark as left", blocked while they still hold items (show the list)
-- [ ] **Issue** (the most used screen, phone-friendly):
+- [x] **Issue** (the most used screen, phone-friendly):
   1. pick the employee
   2. pick Spare assets by search or tag
   3. for each asset, set condition and tick accessories
   4. location defaults to the employee's desk; date defaults to today
   5. Save, then the "Print handover form" option
-- [ ] **Return** and **Transfer** screens, built the same way.
-- [ ] **Handover form print page:** see the spec below.
+- [x] **Return** and **Transfer** screens, built the same way.
+- [x] **Handover form print page:** see the spec below.
 - [x] **Settings:**
   - categories (prefix, min spares, typical replacement cost, service interval, custom fields editor)
   - accessory types (with stock link), departments, locations, vendors

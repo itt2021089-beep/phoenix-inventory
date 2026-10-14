@@ -84,3 +84,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* A4 print pages under /print/... (CLAUDE.md: print with the browser, no PDF library). */
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+.handover-sheet {
+  width: 210mm;
+  min-height: 297mm;
+}
+
+@media print {
+  .handover-sheet {
+    width: auto;
+    min-height: 0;
+  }
+  /* Keep the tick-box and table shading when "Background graphics" is off. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
