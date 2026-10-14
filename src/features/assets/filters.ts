@@ -113,3 +113,96 @@ export function assetRegisterRow(a: AssetListRow): (string | number)[] {
     0,
   ]
 }
+
+/** How the Assets list can be split into groups. '' is the plain list. */
+export const GROUP_BY = {
+  '': 'None',
+  department: 'Department',
+  person: 'Person',
+  location: 'Location',
+  category: 'Category',
+  status: 'Status',
+} as const
+export type GroupBy = keyof typeof GROUP_BY
+
+export type AssetGroup = {
+  key: string
+  label: string
+  /** For a person group, their employee id (to link to their page). */
+  personId?: string
+  rows: AssetListRow[]
+  /** "3 Laptop · 2 Headset", or for a category group "4 In Use · 2 Spare". */
+  summary: string
+}
+
+const STATUS_ORDER = Object.keys(ASSET_STATUS_LABELS)
+
+/** Counts like "3 Laptop · 2 Headset", the biggest first. */
+function countsText(values: string[]): string {
+  const counts = new Map<string, number>()
+  for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1)
+  return [...counts]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([v, n]) => `${n} ${v}`)
+    .join(' · ')
+}
+
+/**
+ * Splits the (already filtered) list into groups: by department (Common last), by the person
+ * holding it (nobody last), by location (none last), by category or by status (in the usual
+ * status order). Each group carries a one-line summary of what is in it.
+ */
+export function groupAssets(rows: AssetListRow[], by: GroupBy): AssetGroup[] {
+  if (!by) return []
+  const keyOf = (a: AssetListRow): [key: string, label: string, last: boolean] => {
+    switch (by) {
+      case 'department':
+        return a.department_id === null
+          ? ['common', COMMON, true]
+          : [String(a.department_id), a.department?.name ?? '', false]
+      case 'person':
+        return a.assigned_employee_id === null
+          ? ['nobody', 'Not with anyone', true]
+          : [a.assigned_employee_id, a.employee?.full_name ?? '', false]
+      case 'location':
+        return a.location_id === null
+          ? ['none', 'No location', true]
+          : [String(a.location_id), a.location?.name ?? '', false]
+      case 'category':
+        return [String(a.category_id), a.category?.name ?? '', false]
+      case 'status':
+        return [a.status, labelOf(ASSET_STATUS_LABELS, a.status), false]
+    }
+  }
+
+  const groups = new Map<string, { label: string; last: boolean; rows: AssetListRow[] }>()
+  for (const a of rows) {
+    const [key, label, last] = keyOf(a)
+    const g = groups.get(key) ?? { label, last, rows: [] }
+    g.rows.push(a)
+    groups.set(key, g)
+  }
+
+  return [...groups]
+    .sort(([ka, a], [kb, b]) => {
+      if (a.last !== b.last) return a.last ? 1 : -1
+      if (by === 'status') return STATUS_ORDER.indexOf(ka) - STATUS_ORDER.indexOf(kb)
+      return a.label.localeCompare(b.label)
+    })
+    .map(([key, g]) => ({
+      key,
+      label: g.label,
+      personId: by === 'person' && key !== 'nobody' ? key : undefined,
+      rows: [...g.rows].sort((x, y) => x.asset_tag.localeCompare(y.asset_tag)),
+      summary:
+        by === 'category' || by === 'status'
+          ? countsText(
+              g.rows.map((a) =>
+                by === 'category'
+                  ? labelOf(ASSET_STATUS_LABELS, a.status)
+                  : (a.category?.name ?? ''),
+              ),
+            )
+          : countsText(g.rows.map((a) => a.category?.name ?? '')),
+    }))
+}

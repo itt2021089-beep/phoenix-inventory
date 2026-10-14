@@ -218,8 +218,11 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Assets by department</CardTitle>
+            <Link to="/assets?group=department" className="text-sm text-primary hover:underline">
+              Open grouped list
+            </Link>
           </CardHeader>
           <CardContent>
             {grid.departments.length === 0 ? (
