@@ -49,6 +49,8 @@ export function StockItemPage() {
   const items = useStockList()
   const moves = useMovements()
   const s = items.data?.find((x) => x.item_code === code)
+  // Kept here: saving rebuilds the details form, which would lose a "Saved." kept inside it.
+  const [detailsSaved, setDetailsSaved] = useState(false)
 
   if (!s) {
     return (
@@ -215,7 +217,14 @@ export function StockItemPage() {
         </CardContent>
       </Card>
 
-      {isAdmin && <EditStockItem key={`edit-${s.id}-${s.name}-${s.reorder_level}`} item={s} />}
+      {isAdmin && (
+        <EditStockItem
+          key={`edit-${s.id}-${s.name}-${s.reorder_level}`}
+          item={s}
+          saved={detailsSaved}
+          setSaved={setDetailsSaved}
+        />
+      )}
     </div>
   )
 }
@@ -434,14 +443,21 @@ function RecordStock({ item }: { item: StockItem }) {
 }
 
 /** Name, unit, reorder level, notes. The quantity is never typed here: only movements change it. */
-function EditStockItem({ item }: { item: StockItem }) {
+function EditStockItem({
+  item,
+  saved,
+  setSaved,
+}: {
+  item: StockItem
+  saved: boolean
+  setSaved: (saved: boolean) => void
+}) {
   const update = useUpdateStockItem()
   const [name, setName] = useState(item.name)
   const [unit, setUnit] = useState(item.unit)
   const [reorder, setReorder] = useState(String(item.reorder_level))
   const [notes, setNotes] = useState(item.notes ?? '')
   const [active, setActive] = useState(item.is_active)
-  const [saved, setSaved] = useState(false)
   const level = reorder.trim() === '' ? 0 : Number(reorder)
   const bad = !Number.isInteger(level) || level < 0
 

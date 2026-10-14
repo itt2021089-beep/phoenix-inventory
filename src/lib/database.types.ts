@@ -1156,6 +1156,27 @@ export type Database = {
       }
     }
     Views: {
+      v_asset_costs: {
+        Row: {
+          asset_id: string | null
+          asset_tag: string | null
+          basis_source: string | null
+          category: string | null
+          category_id: number | null
+          faults_last_12m: number | null
+          flag_faults: boolean | null
+          flag_spend: boolean | null
+          flagged: boolean | null
+          make: string | null
+          model: string | null
+          no_basis: boolean | null
+          repair_spend: number | null
+          replacement_basis: number | null
+          spend_pct: number | null
+          status: string | null
+        }
+        Relationships: []
+      }
       v_category_summary: {
         Row: {
           active_total: number | null
@@ -1177,11 +1198,17 @@ export type Database = {
         Row: {
           active_total: number | null
           categories_below_min: number | null
+          due_soon: number | null
           faulty_or_repair: number | null
+          flagged_assets: number | null
           in_use: number | null
           in_use_without_holder: number | null
           lost_stolen: number | null
+          open_faults: number | null
+          open_qr_faults: number | null
+          overdue: number | null
           spare_total: number | null
+          stock_to_reorder: number | null
         }
         Relationships: []
       }
@@ -1192,6 +1219,22 @@ export type Database = {
           category_id: number | null
           department: string | null
           department_id: number | null
+        }
+        Relationships: []
+      }
+      v_due_soon: {
+        Row: {
+          asset_id: string | null
+          asset_tag: string | null
+          category: string | null
+          days_left: number | null
+          detail: string | null
+          due_date: string | null
+          kind: string | null
+          location: string | null
+          make: string | null
+          model: string | null
+          overdue: boolean | null
         }
         Relationships: []
       }
@@ -1210,6 +1253,47 @@ export type Database = {
           make: string | null
           model: string | null
           serial_number: string | null
+        }
+        Relationships: []
+      }
+      v_open_faults: {
+        Row: {
+          age_days: number | null
+          asset_tag: string | null
+          category: string | null
+          date_reported: string | null
+          description: string | null
+          fault_id: number | null
+          fault_no: string | null
+          holder: string | null
+          make: string | null
+          model: string | null
+          source: string | null
+          status: string | null
+          vendor: string | null
+        }
+        Relationships: []
+      }
+      v_spend_monthly: {
+        Row: {
+          amount: number | null
+          department: string | null
+          department_id: number | null
+          month: string | null
+          source: string | null
+        }
+        Relationships: []
+      }
+      v_stock_levels: {
+        Row: {
+          is_active: boolean | null
+          item_code: string | null
+          name: string | null
+          needs_reorder: boolean | null
+          qty_on_hand: number | null
+          reorder_level: number | null
+          stock_item_id: number | null
+          unit: string | null
         }
         Relationships: []
       }
@@ -1350,6 +1434,16 @@ export type Database = {
           p_photo_path?: string
           p_reporter_name: string
           p_tag: string
+        }
+        Returns: string
+      }
+      swap_asset: {
+        Args: {
+          p_fault_description?: string
+          p_fault_id?: number
+          p_faulty_asset_id: string
+          p_spare_asset_id: string
+          p_swap_date?: string
         }
         Returns: string
       }

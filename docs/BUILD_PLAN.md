@@ -236,27 +236,45 @@ refused):
 
 ## Phase 4: Spare pool, reminders, repair vs replace
 
-- [ ] Views `v_due_soon`, `v_asset_costs`, `v_stock_levels`, and the rest of `v_dashboard`.
-- [ ] Settings page: edit the thresholds (repair %, repeat faults, reminder window, rate limit).
-- [ ] **Dashboard panels:**
+- [x] Views `v_due_soon`, `v_asset_costs`, `v_stock_levels`, and the rest of `v_dashboard`.
+- [x] Settings page: edit the thresholds (repair %, repeat faults, reminder window, rate limit).
+- [x] **Dashboard panels:**
   - Due in the next 30 days: warranty and service, with overdue in red
   - Spare pool vs minimum
   - Stock to reorder
   - Open faults
   - Repair-vs-replace flags
-- [ ] **Swap action** (`swap_asset`), on the asset page and in the fault inbox.
-- [ ] **Reports page**, each report exportable:
+- [x] **Swap action** (`swap_asset`), on the asset page and on a fault page that is still with its holder
+  (Phase 4, 16/10/2026). Same category only; with no spare it says so. The old asset becomes Faulty in
+  the IT store (not Under Repair), so Send for repair takes it from there.
+- [x] **Reports page**, each report exportable:
   - repair-vs-replace list with the numbers
   - repair and service spend per department per month
   - faults by cause
   - service history by vendor
-- [ ] **Leaver clearance print page:** everything the employee holds, including accessories, with
+- [x] **Leaver clearance print page:** everything the employee holds, including accessories, with
   signature lines for IT and HR.
 
 **Done when:**
 - an asset with repairs ≥ 50% of its replacement basis shows as flagged
 - a category below its minimum spares turns red
 - a warranty ending within 30 days shows on the dashboard
+
+**Phase 4 checks, 16/10/2026** (production build on a local copy shaped like Supabase, fake people):
+- a laptop with LKR 60,000 on a fault and LKR 50,000 on a service line (55% of a typical LKR 200,000)
+  is flagged, with the reason; raising the threshold to 60% un-flags it
+- the Laptop row turns red when the spare pool drops below its minimum of 2 (after two swaps)
+- three AC warranties ending in 10 days show under "Due in the next 30 days"; a service 100 days
+  ago on a 90-day interval shows 10 days overdue, in red, at the top; a 5-day window drops the
+  warranties but keeps the overdue service
+- swap from the asset page and from a fault page; with no spare left it says so
+- all four reports show the right numbers and export; the leaver sheet prints on one A4 page and a
+  viewer (HR) can print it
+- `phase4.sql` and the other five SQL suites pass; `rls.api.test.ts` gains Phase 4 checks that
+  need the new migration on DEV (run `npx supabase db push` first)
+- the flags need numbers from Sahan: set each category's typical replacement cost and minimum
+  spares in Settings (open decision 4); an asset with neither a purchase price nor a typical cost
+  is marked "none set" in the report and cannot be flagged on spend
 
 ---
 

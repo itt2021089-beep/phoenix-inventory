@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, Pencil, Printer } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
@@ -96,13 +96,21 @@ export function PersonPage() {
         }
         description={[p.designation, p.department?.name].filter(Boolean).join(' · ')}
         actions={
-          isAdmin && (
+          <>
+            {/* HR and the boss may print this too (CLAUDE.md, Users and roles). */}
             <Button variant="outline" size="sm" asChild>
-              <Link to={`/people/${p.id}/edit`}>
-                <Pencil /> Edit
+              <Link to={`/print/leaver/${p.id}`} target="_blank" rel="noopener">
+                <Printer /> Leaver clearance sheet
               </Link>
             </Button>
-          )
+            {isAdmin && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/people/${p.id}/edit`}>
+                  <Pencil /> Edit
+                </Link>
+              </Button>
+            )}
+          </>
         }
       />
 

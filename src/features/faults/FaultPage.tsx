@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/features/auth/useAuth'
+import { SwapPanel } from '@/features/assets/SwapPanel'
+import { useAssetList } from '@/features/assets/api'
 import { usePhotos } from '@/features/photos/api'
 import { PhotoGallery } from '@/features/photos/PhotoGallery'
 import { PhotoUpload } from '@/features/photos/PhotoUpload'
@@ -51,6 +53,9 @@ export function FaultPage() {
   const isAdmin = profile?.role === 'admin'
   const fault = useFault(no)
   const f = fault.data
+  // Which form was just saved. It lives here because saving refreshes the fault, which rebuilds
+  // the forms, and a "Saved." kept inside a form would vanish with it.
+  const [saved, setSaved] = useState<'repair' | 'finding' | null>(null)
 
   if (!f) {
     return (
@@ -122,7 +127,12 @@ export function FaultPage() {
       )}
 
       {isAdmin ? (
-        <FaultEditor key={`${f.id}-${f.updated_at}`} fault={f} />
+        <FaultEditor
+          key={`${f.id}-${f.updated_at}`}
+          fault={f}
+          saved={saved === 'repair'}
+          setSaved={(v) => setSaved(v ? 'repair' : null)}
+        />
       ) : (
         <FaultReadOnly fault={f} />
       )}
@@ -144,7 +154,12 @@ export function FaultPage() {
       <FaultPhotos fault={f} isAdmin={isAdmin} />
 
       {isAdmin ? (
-        <Investigation key={`inv-${f.id}-${f.updated_at}`} fault={f} />
+        <Investigation
+          key={`inv-${f.id}-${f.updated_at}`}
+          fault={f}
+          saved={saved === 'finding'}
+          setSaved={(v) => setSaved(v ? 'finding' : null)}
+        />
       ) : (
         <FindingReadOnly fault={f} />
       )}
@@ -177,7 +192,15 @@ function FaultReadOnly({ fault: f }: { fault: FaultRow }) {
 }
 
 /** Status flow, vendor, cost and warranty. A fault fixed in a service job has its cost there. */
-function FaultEditor({ fault: f }: { fault: FaultRow }) {
+function FaultEditor({
+  fault: f,
+  saved,
+  setSaved,
+}: {
+  fault: FaultRow
+  saved: boolean
+  setSaved: (saved: boolean) => void
+}) {
   const vendors = useVendors()
   const update = useUpdateFault()
   const [status, setStatus] = useState(f.status)
@@ -187,7 +210,6 @@ function FaultEditor({ fault: f }: { fault: FaultRow }) {
   const [warranty, setWarranty] = useState(f.under_warranty)
   const [closedOn, setClosedOn] = useState(f.date_closed ?? todayInColombo())
   const [remarks, setRemarks] = useState(f.remarks ?? '')
-  const [saved, setSaved] = useState(false)
   const inService = f.service_line_id !== null
   const costNumber = cost.trim() === '' ? 0 : Number(cost)
   const badCost = !Number.isFinite(costNumber) || costNumber < 0
@@ -398,15 +420,7 @@ function RepairActions({ fault: f }: { fault: FaultRow }) {
   }
 
   if (asset.status === 'in_use') {
-    return (
-      <p className="text-sm text-muted-foreground">
-        {asset.asset_tag} is still with its holder.{' '}
-        <Link className="underline underline-offset-2" to={`/return?asset=${asset.asset_tag}`}>
-          Return it
-        </Link>{' '}
-        as Faulty first, then send it for repair.
-      </p>
-    )
+    return <InUseOptions fault={f} />
   }
 
   if (asset.status !== 'faulty' && asset.status !== 'spare') return null
@@ -472,13 +486,20 @@ function RepairActions({ fault: f }: { fault: FaultRow }) {
 }
 
 /** Sahan's finding after checking. Three separate facts: who told us, who held it, and this. */
-function Investigation({ fault: f }: { fault: FaultRow }) {
+function Investigation({
+  fault: f,
+  saved,
+  setSaved,
+}: {
+  fault: FaultRow
+  saved: boolean
+  setSaved: (saved: boolean) => void
+}) {
   const people = usePeople()
   const save = useSaveFinding()
   const [cause, setCause] = useState(f.cause ?? '')
   const [responsible, setResponsible] = useState(f.responsible_employee_id ?? '')
   const [notes, setNotes] = useState(f.finding_notes ?? '')
-  const [saved, setSaved] = useState(false)
   // Active people, plus anyone already named (they may have left since).
   const choices = (people.data ?? []).filter(
     (p) => p.status === 'active' || p.id === f.responsible_employee_id,
@@ -684,5 +705,41 @@ function MatchReporter({ fault: f }: { fault: FaultRow }) {
         )}
       </CardContent>
     </Card>
+  )
+}
+
+/** The faulty thing is still with its holder: return it, or swap in a spare in one step. */
+function InUseOptions({ fault: f }: { fault: FaultRow }) {
+  const assets = useAssetList()
+  const [open, setOpen] = useState(false)
+  const asset = f.asset!
+  const full = assets.data?.find((x) => x.asset_tag === asset.asset_tag)
+
+  if (open && full) {
+    return (
+      <SwapPanel
+        asset={full}
+        faultId={f.id}
+        faultText={f.description}
+        onDone={() => setOpen(false)}
+      />
+    )
+  }
+  return (
+    <div className="space-y-2 text-sm text-muted-foreground">
+      <p>
+        {asset.asset_tag} is still with its holder.{' '}
+        <Link className="underline underline-offset-2" to={`/return?asset=${asset.asset_tag}`}>
+          Return it
+        </Link>{' '}
+        as Faulty, then send it for repair
+        {full?.assigned_employee_id ? ', or give them a spare now:' : '.'}
+      </p>
+      {full?.assigned_employee_id && (
+        <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+          Swap for a spare
+        </Button>
+      )}
+    </div>
   )
 }

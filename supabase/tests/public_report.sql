@@ -168,10 +168,12 @@ begin
   reset role;
   perform pg_temp.check((select (value #>> '{}')::int from settings where key = 'report_rate_limit') = 3
     and exists (select 1 from settings where key = 'report_rate_limit_total'), 'both limits are settings');
-  update settings set value = '"twenty"' where key = 'report_rate_limit_total';
+  -- A setting that is not a number cannot be saved any more (settings_validate); a missing one
+  -- still falls back to 20.
+  delete from settings where key = 'report_rate_limit_total';
   update fault_log set created_at = created_at - interval '2 hours';
   perform pg_temp.act_as(null);
-  perform submit_fault_report('PBS-LAP-002', 'Kamal', 'A setting that is not a number falls back to 20');
+  perform submit_fault_report('PBS-LAP-002', 'Kamal', 'A missing setting falls back to 20');
   reset role;
 
   -- Logged out: no table, view, sequence or other function (rls.sql covers the sweep).

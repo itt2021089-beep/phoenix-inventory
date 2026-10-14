@@ -28,7 +28,9 @@ import { StockListPage } from '@/features/stock/StockListPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
+import { ReportsPage } from '@/features/reports/ReportsPage'
 import { LabelsPrintPage } from '@/features/labels/LabelsPrintPage'
+import { LeaverClearancePrint } from '@/features/print/LeaverClearancePrint'
 import { HandoverFormPrint } from '@/features/print/HandoverFormPrint'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 
@@ -56,6 +58,7 @@ export default function App() {
             <Route element={<RequireAuth />}>
               {/* Print pages: A4, no app chrome. Viewers may print too. */}
               <Route path="print/handover/:formNo" element={<HandoverFormPrint />} />
+              <Route path="print/leaver/:id" element={<LeaverClearancePrint />} />
               <Route element={<RequireAdmin />}>
                 <Route path="print/labels" element={<LabelsPrintPage />} />
               </Route>
@@ -85,6 +88,7 @@ export default function App() {
                 <Route path="service" element={<ServiceListPage />} />
                 <Route path="service/:no" element={<ServiceJobPage />} />
                 <Route path="stock" element={<StockListPage />} />
+                <Route path="reports" element={<ReportsPage />} />
                 <Route path="stock/:code" element={<StockItemPage />} />
                 <Route
                   path="*"
