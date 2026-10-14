@@ -49,6 +49,7 @@ export type ImportPayload = {
     asset_tag: string
     change_type: string
     from_location: string | null
+    to_location: string | null
     to_nid: string | null
     from_text: string | null
     to_text: string | null
@@ -312,6 +313,7 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
 
   // --- Change Log. The register is the truth, so "To" becomes that asset's current holder.
   const holderOf = new Map(assets.map((a) => [a.asset_tag, a.nid]))
+  const placeOf = new Map(assets.map((a) => [a.asset_tag, a.location]))
   const change_log: ImportPayload['change_log'] = []
   const seenChangeNos = new Set<string>()
   for (const [i, r] of changeRows.entries()) {
@@ -358,6 +360,10 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
       asset_tag: tag,
       change_type: type,
       from_location: isStore ? 'IT store' : null,
+      // Where it ended up. The workbook's "To" was a person, so the row would otherwise read
+      // "IT store ->" with no destination.
+      to_location:
+        type === 'issued' || type === 'reassigned' ? (placeOf.get(tag) ?? null) : null,
       // The log used placeholders like "Travel User 1"; the register says who really holds it.
       to_nid: type === 'issued' || type === 'reassigned' ? (holderOf.get(tag) ?? null) : null,
       from_text: isStore ? null : from || null,

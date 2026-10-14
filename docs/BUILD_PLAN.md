@@ -103,15 +103,19 @@ and the RLS checklist at the bottom passes.
 - [x] **Settings:**
   - categories (prefix, min spares, typical replacement cost, service interval, custom fields editor)
   - accessory types (with stock link), departments, locations, vendors
-- [ ] **Import from workbook:** see the mapping below. The Fault Log tab and the Consumables
+- [x] **Import from workbook:** see the mapping below. The Fault Log tab and the Consumables
   quantities are imported in Phase 2, with the tables they need (decided 13/10/2026). Until then
   the preview lists them as "imported in Phase 2".
   - Uses the admin-only `import_workbook` RPC (in docs/SCHEMA.md), so the existing CHG numbers and
     dates are kept rather than re-issued.
-- [ ] **Export to Excel:** see the spec below.
+- [x] **Export to Excel:** see the spec below.
 
 **Done when:**
 - Sahan's real workbook imports with no unexplained warnings
+  (14/10/2026: it does. 17 register rows became 11 assets and 6 accessory ticks, 6 people, 6
+  locations and 11 Change Log rows, with only the two "imported in Phase 2" notes. The next
+  tags it worked out, PBS-LAP-007 and PBS-HST-006, match the workbook's own Next Free Tag
+  column. Tried on a throwaway local copy of the database, not on DEV.)
 - issuing a laptop and a headset with Charger and Mouse ticked takes one screen and prints a correct
   HO form
 - the export opens in Excel with the same tabs and column headers as today's workbook

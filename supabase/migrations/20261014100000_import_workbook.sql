@@ -17,8 +17,8 @@
 --   assets      [{asset_tag, category, make, model, serial_number, status, condition, nid,
 --                 department, location, date_assigned, specification, accessories_note,
 --                 notes, accessories[]}]
---   change_log  [{change_no, change_date, asset_tag, change_type, from_location, to_nid,
---                 from_text, to_text, reason}]
+--   change_log  [{change_no, change_date, asset_tag, change_type, from_location, to_location,
+--                 to_nid, from_text, to_text, reason}]
 
 create or replace function public.import_workbook(p_payload jsonb)
 returns jsonb
@@ -144,7 +144,7 @@ begin
   for item in select * from jsonb_array_elements(coalesce(p_payload -> 'change_log', '[]')) loop
     insert into public.change_log (
       change_no, change_date, asset_id, change_type, to_employee_id, from_location_id,
-      from_text, to_text, reason)
+      to_location_id, from_text, to_text, reason)
     values (
       item ->> 'change_no',
       coalesce((item ->> 'change_date')::date, current_date),
@@ -152,6 +152,7 @@ begin
       item ->> 'change_type',
       (select id from public.employees where nid = item ->> 'to_nid'),
       (select id from public.locations where lower(name) = lower(item ->> 'from_location')),
+      (select id from public.locations where lower(name) = lower(item ->> 'to_location')),
       item ->> 'from_text',
       item ->> 'to_text',
       item ->> 'reason')
@@ -160,6 +161,7 @@ begin
       change_type = excluded.change_type,
       to_employee_id = excluded.to_employee_id,
       from_location_id = excluded.from_location_id,
+      to_location_id = excluded.to_location_id,
       from_text = excluded.from_text,
       to_text = excluded.to_text,
       reason = excluded.reason;

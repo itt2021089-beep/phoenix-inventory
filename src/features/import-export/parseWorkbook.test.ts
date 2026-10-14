@@ -231,6 +231,7 @@ describe('parseWorkbook', () => {
       asset_tag: 'PBS-LAP-001',
       change_type: 'issued',
       from_location: 'IT store',
+      to_location: 'travel section',
       to_nid: '200012345678',
       from_text: null,
       to_text: null,
