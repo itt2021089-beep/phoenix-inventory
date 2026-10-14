@@ -9,6 +9,10 @@
 
 begin;
 
+-- Newer Supabase storage refuses a direct delete from storage.objects unless this is on. The
+-- test cleans up its fake files that way; it lasts only for this transaction, which is rolled back.
+set local storage.allow_delete_query = 'true';
+
 create function pg_temp.act_as(p_user uuid) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claim.sub', coalesce(p_user::text, ''), true);

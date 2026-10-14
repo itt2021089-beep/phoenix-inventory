@@ -212,7 +212,7 @@ begin
   perform pg_temp.check(r.accessories_missing = array['Charger'] and r.reason ~ '^FLT-[0-9]{4}: Screen flickers$',
     'missing accessories and fault number recorded');
   select * into r from fault_log where asset_id = l1;
-  perform pg_temp.check(r.description = 'Screen flickers' and r.status = 'open' and r.date_reported = current_date,
+  perform pg_temp.check(r.description = 'Screen flickers' and r.status = 'open' and r.date_reported = (now() at time zone 'Asia/Colombo')::date,
     'return opens a fault');
   perform pg_temp.check(r.holder_employee_id = e2 and r.reported_by_employee_id = e2,
     'the fault names who held it and who reported it');

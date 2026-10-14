@@ -42,6 +42,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Some tests import modules that create the Supabase client, which refuses to start without
+    // these two names. Unit tests never call Supabase, so placeholders are enough; without them
+    // `npm test` fails in CI, which has no .env.local.
+    env: {
+      VITE_SUPABASE_URL: 'https://example.supabase.co',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_unit_tests_only',
+    },
     // supabase/tests talks to the real DEV project; it runs only via `npm run test:rls`.
     exclude: [...configDefaults.exclude, 'supabase/**'],
     css: true,
