@@ -207,9 +207,15 @@ export function AssetPage() {
                   <span className="text-muted-foreground">{formatDate(r.change_date)}</span>
                   <span className="font-mono text-xs text-muted-foreground">{r.change_no}</span>
                   {r.handover_form && (
-                    <span className="font-mono text-xs text-muted-foreground">
+                    <Link
+                      to={`/print/handover/${r.handover_form.form_no}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="font-mono text-xs text-muted-foreground underline underline-offset-2"
+                      title="Open the handover form"
+                    >
                       {r.handover_form.form_no}
-                    </span>
+                    </Link>
                   )}
                 </div>
                 {describeChange(r) && <p className="text-sm">{describeChange(r)}</p>}

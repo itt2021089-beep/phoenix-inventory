@@ -19,6 +19,7 @@ import { TransferPage } from '@/features/issue/TransferPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
+import { HandoverFormPrint } from '@/features/print/HandoverFormPrint'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 
 const queryClient = new QueryClient({
@@ -37,6 +38,8 @@ export default function App() {
             <Route path="/no-access" element={<NoAccessPage />} />
 
             <Route element={<RequireAuth />}>
+              {/* Print pages: A4, no app chrome. Viewers may print too. */}
+              <Route path="print/handover/:formNo" element={<HandoverFormPrint />} />
               <Route element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
                 <Route path="assets" element={<AssetsListPage />} />
