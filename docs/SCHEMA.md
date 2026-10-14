@@ -254,6 +254,8 @@ responsible_employee_id  uuid FK employees    -- admin finding
 finding_notes            text
 remarks                  text
 audit cols
+trigger: fills holder_employee_id on insert; a service_line_id forces cost to 0 and must be a
+         line for the same asset; closing without a date_closed means today; sets updated_at
 ```
 
 ### service_jobs
@@ -295,7 +297,10 @@ unit_cost      numeric(12,2)
 reference      text                       -- invoice no, "Opening balance from Excel", ...
 notes          text
 created_at, created_by
-trigger: update stock_items.qty_on_hand; raise if it would go below 0
+trigger: update stock_items.qty_on_hand; raise if it would go below 0 (Sahan, 14/10/2026:
+         refuse and say why; the whole action, an issue say, saves nothing)
+append-only: no update or delete; a mistake gets a correcting 'adjusted' row
+stock_items guard: qty_on_hand changes only through this trigger, and a new item starts at 0
 ```
 
 ### photos
@@ -304,9 +309,11 @@ id            bigint identity PK
 entity_type   text not null    -- 'asset' | 'change_log' | 'fault' | 'handover_form' | 'service_job'
 entity_id     text not null    -- id of that row, as text
 kind          text not null    -- photo_kind
-storage_path  text not null
+storage_path  text not null unique  -- check: in the entity's folder (assets/<id>/..., faults/<no>/...
+                                   -- or reports/<file> for a fault); no empty, "." or ".." parts
 created_at, created_by
 index on (entity_type, entity_id)
+grants: viewer reads, admin inserts; no update, no delete (like the logs)
 ```
 
 ### settings
@@ -364,17 +371,17 @@ in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the 
 |---|---|
 | `next_asset_tag(category_id)` | Locks the category row and returns `PBS-<prefix>-<NNN>` (at least 3 digits), then increments `next_tag_number`. |
 | `add_assets(category_id, qty, fields jsonb, serials text[])` | Bulk-creates Spare assets with tags and writes a `received_new` change row for each. Returns the tags. |
-| `issue_assets(employee_id, items jsonb, location_id, issue_date, reason, make_form bool)` | `items` is `[{asset_id, condition, accessory_type_ids[]}]`. Sets each asset to In Use with the person, department (from the employee), location (default: the employee's desk) and `date_assigned`. Writes `issued` rows, sets `asset_accessories`, and deducts linked accessory stock. Optionally creates the HO form. Returns the `form_no`. |
-| `return_assets(items jsonb, return_condition, data_backed_up, remarks, make_form bool)` | `items` is `[{asset_id, condition, accessories_returned[], accessories_missing[], next_status, fault_description?}]`, where `next_status` is spare, under_repair or faulty. All items must have the same holder (or none); a form needs a holder. Clears the person and the department, and moves the asset to `location_id` (default: the IT store). Returned accessories linked to a stock item go back to stock and come off the asset; other returned ones (charger, bag) stay with it; missing ones come off. Writes `returned` rows, returns accessory stock, and opens a fault if a description is given. **Until Phase 2** the stock step is a no-op and the fault description is kept in the row's `reason`. |
+| `issue_assets(employee_id, items jsonb, location_id, issue_date, reason, make_form bool)` | `items` is `[{asset_id, condition, accessory_type_ids[]}]`. Sets each asset to In Use with the person, department (from the employee), location (default: the employee's desk) and `date_assigned`. Writes `issued` rows, sets `asset_accessories`, and takes 1 from stock for each ticked accessory that is linked to a stock item and newly handed over (one still with the asset from before is not counted twice). If any of those is at 0 the whole issue is refused with "<item> stock is 0. Untick <accessory>, or receive stock first." Each stock movement carries the `issued` row's `change_log_id`. Optionally creates the HO form. Returns the `form_no`. |
+| `return_assets(items jsonb, return_condition, data_backed_up, remarks, make_form bool)` | `items` is `[{asset_id, condition, accessories_returned[], accessories_missing[], next_status, fault_description?}]`, where `next_status` is spare, under_repair or faulty. All items must have the same holder (or none); a form needs a holder. Clears the person and the department, and moves the asset to `location_id` (default: the IT store). Returned accessories linked to a stock item go back to stock and come off the asset; other returned ones (charger, bag) stay with it; missing ones come off. Writes `returned` rows and puts 1 back in stock for each returned stock-linked accessory (a missing one puts nothing back). A `fault_description` opens a fault (reporter and holder: the person returning it), and the row's `reason` gets `FLT-0001: <description>`. |
 | `transfer_assets(from_employee_id, to_employee_id, asset_ids uuid[], make_form bool)` | Writes `reassigned` rows. Department and location follow the new employee (location stays put if they have no desk). Accessories go with the asset. |
 | `swap_asset(faulty_asset_id, spare_asset_id, fault_description)` | Opens a fault on the old asset (→ Under Repair) and issues the spare to the same person and location. Moves the accessories over. Writes both change rows. |
 | `move_asset(asset_id, location_id, department_id, reason)` | Writes a `location_changed` row. |
-| `send_for_repair(asset_id, fault_id, vendor_id)` / `back_from_repair(asset_id, condition, next_status)` | Status changes plus the change rows. Updates the fault status (with_vendor / closed). |
+| `send_for_repair(asset_id, fault_id, vendor_id, date, reason)` / `back_from_repair(asset_id, condition, next_status, date, reason)` | Send: Faulty or Spare → Under Repair (In Use is refused: return it first, as Faulty), writes `sent_for_repair` with the vendor name in `to_text`, and the fault (if given) goes With Vendor. Back: Under Repair → Spare (fixed: With Vendor faults close on that date) or Faulty (not fixed: they reopen), writes `back_from_repair` with the vendor in `from_text`. |
 | `retire_asset(asset_id, reason)` / `dispose_asset(asset_id, reason)` | A reason is required. Clears the person and writes the change row. Retire works from any active status; Dispose from anything but Disposed. |
-| `record_service_job(header jsonb, lines jsonb)` | Creates the job and its lines and fills `next_due_date`. Returns `job_no`. |
+| `record_service_job(header jsonb, lines jsonb)` | `header` is `{vendor_id, job_type, service_date, invoice_no, invoice_total, notes}`; `lines` is `[{asset_id, work_done, cost, next_due_date?, notes?, fault_id?}]`. Creates the job and its lines and fills `next_due_date`. A line's `fault_id` links that fault (which must be on the same asset) to the line, closes it on the job date and sets its cost to 0 (rule 7). Retired and Disposed assets are refused. Returns `job_no`. |
 | `get_public_asset(tag)` | **Public (anon).** Returns only `asset_tag, category name, make, model` for an active asset, or nothing. |
 | `submit_fault_report(tag, reporter_name, description, photo_path)` | **Public (anon).** Validates the lengths (name ≤ 80, description 5–1000) and the rate limit per asset. Inserts a fault with `source = 'qr'` and fills `holder_employee_id`. Returns `fault_no`. |
-| `import_workbook(payload jsonb)` | **Admin.** Brings the Excel workbook in, in one transaction. Takes names, not ids: `categories`, `locations`, `employees`, `assets` (with an `accessories` list of names) and `change_log`. Safe to re-run: everything is matched on its natural key (tag, NID, change number, name), so a second run updates rather than duplicates. Keeps the workbook's CHG numbers and dates, writes no change rows of its own, and afterwards moves each category's `next_tag_number` and the CHG sequence past the numbers used. The browser parses the file (`src/features/import-export/`); nothing is uploaded. |
+| `import_workbook(payload jsonb)` | **Admin.** Brings the Excel workbook in, in one transaction. Takes names, not ids: `categories`, `locations`, `employees`, `assets` (with an `accessories` list of names), `change_log`, `faults` (Phase 2: FLT number, tag, reporter by NID or typed name, vendor name, status, cost, findings) and `stock` (Phase 2: name, reorder level, quantity received and issued). Safe to re-run: everything is matched on its natural key (tag, NID, change number, fault number, name), so a second run updates rather than duplicates; a finding or vendor set in the app survives a row that leaves it blank, and each consumable's opening balance (a `received` and an `issued` movement, reference "Opening balance from Excel") is written once only. Keeps the workbook's CHG and FLT numbers and dates, writes no change rows of its own, and afterwards moves each category's `next_tag_number` and the CHG and FLT sequences past the numbers used. Returns the counts, including `faults` and `stock_items` (opening balances written by this run). The browser parses the file (`src/features/import-export/`); nothing is uploaded. |
 | `ping()` | **Public.** Returns 1. Used by the keep-alive workflow. |
 
 ## Views (all `with (security_invoker = true)`)
@@ -404,7 +411,9 @@ in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the 
 
 ## Storage
 
-Bucket `photos`: private, 5 MB per file, `image/*` only.
+Bucket `photos`: private, 5 MB per file, `image/*` only. Created by the `photos` migration.
+Nobody updates (overwrites) or deletes a file: there is no policy for either. Upload with a new
+name each time. The `reports/` policy comes with the public report form in Phase 3.
 
 | Path | admin | viewer | anon |
 |---|---|---|---|

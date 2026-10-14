@@ -59,6 +59,21 @@ declare
       {"change_no": "CHG-0009", "change_date": "2026-10-01", "asset_tag": "PBS-LAP-007",
        "change_type": "issued", "from_location": "IT store", "to_nid": "200012345678",
        "from_text": null, "to_text": null, "reason": "recorded during inventory setup"}
+    ],
+    "faults": [
+      {"fault_no": "FLT-0001", "asset_tag": "PBS-LAP-007", "date_reported": "2026-10-01",
+       "reported_by_nid": null, "reported_by_name": "Front Desk Visitor",
+       "description": "nuts are on loose", "action_taken": "fix by supplier (lanka pc)",
+       "vendor": "Lanka PC", "cost": 0, "status": "closed", "date_closed": "2026-10-01",
+       "under_warranty": false, "cause": null, "responsible_nid": null, "remarks": null},
+      {"fault_no": "FLT-0003", "asset_tag": "PBS-HST-001", "date_reported": "2026-10-02",
+       "reported_by_nid": "200012345678", "reported_by_name": null,
+       "description": "Mic crackles", "action_taken": null, "vendor": null, "cost": 0,
+       "status": "open", "date_closed": null, "under_warranty": false, "cause": null,
+       "responsible_nid": null, "remarks": "check cable"}
+    ],
+    "stock": [
+      {"name": "optical mouse", "reorder_level": 10, "qty_received": 30, "qty_issued": 22}
     ]
   }
   $j$;
@@ -78,6 +93,8 @@ begin
   res := import_workbook(payload);
   perform pg_temp.check((res ->> 'assets')::int = 2, 'two assets imported');
   perform pg_temp.check((res ->> 'employees')::int = 1, 'one person imported');
+  perform pg_temp.check((res ->> 'faults')::int = 2 and (res ->> 'stock_items')::int = 1,
+    'faults and opening stock counted');
 
   -- The asset is In Use with its person, which a direct insert could never do.
   select * into r from assets where asset_tag = 'PBS-LAP-007';
@@ -98,6 +115,29 @@ begin
     '"IT Store" became the IT store location');
   perform pg_temp.check(r.to_employee_id is not null, 'To resolved to the real holder');
 
+  -- Faults keep their FLT numbers; the supplier in the row becomes a vendor.
+  select * into r from fault_log where fault_no = 'FLT-0001';
+  perform pg_temp.check(r.vendor_id = (select id from vendors where name = 'Lanka PC'), 'vendor Lanka PC linked');
+  perform pg_temp.check(r.status = 'closed' and r.date_closed = '2026-10-01' and r.cost = 0
+    and r.under_warranty = false, 'FLT-0001 closed, cost 0, not under warranty');
+  perform pg_temp.check(r.action_taken = 'fix by supplier (lanka pc)', 'action text kept');
+  perform pg_temp.check(r.reported_by_name = 'Front Desk Visitor' and r.reported_by_employee_id is null,
+    'an unknown reporter keeps the typed name');
+  perform pg_temp.check(r.holder_employee_id = (select id from employees where nid = '200012345678'),
+    'holder filled in from the asset');
+  select * into r from fault_log where fault_no = 'FLT-0003';
+  perform pg_temp.check(r.reported_by_employee_id = (select id from employees where nid = '200012345678')
+    and r.status = 'open' and r.date_closed is null and r.holder_employee_id is null, 'FLT-0003 open, reporter matched');
+
+  -- Consumables: the stock item, its reorder level, and the opening balance as two movements.
+  select * into r from stock_items where lower(name) = 'optical mouse';
+  perform pg_temp.check(r.qty_on_hand = 8 and r.reorder_level = 10, 'opening stock 30 - 22 = 8, reorder at 10');
+  perform pg_temp.check((select count(*) from stock_items where lower(name) = 'optical mouse') = 1,
+    'matched the seeded item by name');
+  perform pg_temp.check((select array_agg(qty_change order by id) from stock_movements
+                         where reference = 'Opening balance from Excel') = array[30, -22],
+    'received 30 then issued 22');
+
   -- The tag counter and the CHG sequence move past what was imported.
   perform pg_temp.check((select next_tag_number from categories where tag_prefix = 'LAP') = 8,
     'next laptop tag is 008');
@@ -111,8 +151,19 @@ begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', admin_id::text, true);
 
+  -- Sahan's finding, written in the app, survives a re-run whose row leaves it blank.
+  update fault_log set cause = 'wear_and_tear' where fault_no = 'FLT-0001';
+
   -- Running it again changes nothing and duplicates nothing.
   res := import_workbook(payload);
+  perform pg_temp.check((select count(*) from fault_log) = 2, 'no duplicate faults');
+  perform pg_temp.check((select count(*) from vendors where name = 'Lanka PC') = 1, 'no duplicate vendor');
+  perform pg_temp.check((select cause from fault_log where fault_no = 'FLT-0001') = 'wear_and_tear',
+    'a finding made in the app is kept');
+  perform pg_temp.check((res ->> 'stock_items')::int = 0
+    and (select count(*) from stock_movements) = 2
+    and (select qty_on_hand from stock_items where lower(name) = 'optical mouse') = 8,
+    'opening stock is written once');
   perform pg_temp.check((select count(*) from assets) = 2, 'no duplicate assets');
   perform pg_temp.check((select count(*) from employees) = 1, 'no duplicate people');
   perform pg_temp.check((select count(*) from change_log) = 1, 'no duplicate change rows');
@@ -135,6 +186,11 @@ begin
   perform pg_temp.check(
     (select regexp_replace(change_no, '\D', '', 'g')::int from change_log order by id desc limit 1) > 9,
     'the next real change number does not clash with the workbook');
+  insert into fault_log (asset_id, description)
+  values ((select id from assets where asset_tag = 'PBS-HST-001'), 'New fault after import');
+  perform pg_temp.check(
+    (select regexp_replace(fault_no, '\D', '', 'g')::int from fault_log order by id desc limit 1) > 3,
+    'the next fault number does not clash with the workbook');
 
   reset role;
   raise notice 'import_workbook: all checks passed.';

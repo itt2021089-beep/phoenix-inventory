@@ -3,7 +3,11 @@ import type {
   CategoryGroup,
   ChangeType,
   Condition,
+  FaultCause,
+  FaultStatus,
   LocationKind,
+  ServiceJobType,
+  StockMovementType,
   UserRole,
   VendorKind,
 } from './db'
@@ -66,6 +70,38 @@ export const VENDOR_KIND_LABELS: Record<VendorKind, string> = {
   supplier: 'Supplier',
   service: 'Service',
   both: 'Supplier and service',
+}
+
+export const FAULT_STATUS_LABELS: Record<FaultStatus, string> = {
+  open: 'Open',
+  in_progress: 'In Progress',
+  with_vendor: 'With Vendor',
+  closed: 'Closed',
+}
+
+export const FAULT_CAUSE_LABELS: Record<FaultCause, string> = {
+  wear_and_tear: 'Wear and tear',
+  accident: 'Accident',
+  misuse: 'Misuse',
+  power_issue: 'Power issue',
+  manufacturing_defect: 'Manufacturing defect',
+  unknown: 'Unknown',
+}
+
+export const SERVICE_JOB_TYPE_LABELS: Record<ServiceJobType, string> = {
+  cleaning: 'Cleaning',
+  repair: 'Repair',
+  service: 'Service',
+  inspection: 'Inspection',
+  installation: 'Installation',
+}
+
+export const STOCK_MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
+  received: 'Received',
+  issued: 'Issued',
+  returned: 'Returned',
+  adjusted: 'Adjusted',
+  written_off: 'Written off',
 }
 
 /** Not Retired or Disposed. */

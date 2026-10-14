@@ -280,3 +280,126 @@ describe('3. admin: the asset guard', () => {
   // The other half of item 3 (the same change through the RPC works and writes a Change Log
   // row) would write to DEV, so it lives in supabase/tests/actions.sql, which rolls back.
 })
+
+// ---------------------------------------------------------------------------
+// Phase 2: faults, service jobs, stock movements, photos.
+// ---------------------------------------------------------------------------
+const PHASE2_READABLE = [
+  'fault_log',
+  'service_jobs',
+  'service_lines',
+  'stock_movements',
+  'photos',
+] as const
+
+const PHASE2_WRITE_ACTIONS: [string, Record<string, unknown>][] = [
+  ['record_service_job', { p_header: {}, p_lines: [] }],
+  ['send_for_repair', { p_asset_id: NOWHERE }],
+  ['back_from_repair', { p_asset_id: NOWHERE, p_condition: 'good' }],
+]
+
+/**
+ * A 1x1 PNG: the smallest file an upload attempt can carry. Uploads are judged by Storage's
+ * RLS message, so a request that never reached the bucket (404, network) does not pass.
+ */
+const TINY_PNG = new Blob(
+  [
+    Uint8Array.from(
+      atob(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      ),
+      (ch) => ch.charCodeAt(0),
+    ),
+  ],
+  { type: 'image/png' },
+)
+
+describe('1. logged out: Phase 2', () => {
+  const anon = client()
+
+  it.each(PHASE2_READABLE)('reads nothing from %s', async (name) => {
+    const { data, error } = await anon.from(name).select('*').limit(1)
+    if (error) expect(error.code, error.message).toBe(PERMISSION_DENIED)
+    else expect(data).toHaveLength(0)
+  })
+
+  it.each(PHASE2_WRITE_ACTIONS)('cannot call %s', async (fn, args) => {
+    const { error } = await anon.rpc(fn, args)
+    expect(error?.code, error?.message).toBe(PERMISSION_DENIED)
+  })
+
+  it('cannot upload a photo', async () => {
+    const { error } = await anon.storage.from('photos').upload('assets/rls-test/anon.png', TINY_PNG)
+    expect(error?.message).toMatch(/row-level security/)
+  })
+})
+
+describe('4. no profile row: Phase 2', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('NOPROFILE')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it.each(PHASE2_READABLE)('reads nothing from %s', async (name) => {
+    const { data, error } = await s.c.from(name).select('*').limit(1)
+    expect(error).toBeNull()
+    expect(data).toHaveLength(0)
+  })
+
+  it('cannot upload a photo', async () => {
+    const { error } = await s.c.storage
+      .from('photos')
+      .upload('assets/rls-test/noprofile.png', TINY_PNG)
+    expect(error?.message).toMatch(/row-level security/)
+  })
+})
+
+describe('2. viewer: Phase 2', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('VIEWER')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it.each(PHASE2_READABLE)('reads %s', async (name) => {
+    const { error } = await s.c.from(name).select('*').limit(1)
+    expect(error).toBeNull()
+  })
+
+  it.each(PHASE2_WRITE_ACTIONS)('is told "not allowed" by %s', async (fn, args) => {
+    const { error } = await s.c.rpc(fn, args)
+    expect(error?.message).toBe('not allowed')
+  })
+
+  it('cannot open a fault', async () => {
+    const { error } = await s.c.from('fault_log').insert({ asset_id: NOWHERE, description: 'x' })
+    expect(error?.code, error?.message).toBe(PERMISSION_DENIED)
+  })
+
+  it('cannot move stock', async () => {
+    const { error } = await s.c
+      .from('stock_movements')
+      .insert({ stock_item_id: 1, movement_type: 'received', qty_change: 1 })
+    expect(error?.message).toBe('not allowed')
+  })
+
+  it('cannot upload a photo', async () => {
+    const { error } = await s.c.storage
+      .from('photos')
+      .upload('assets/rls-test/viewer.png', TINY_PNG)
+    expect(error?.message).toMatch(/row-level security/)
+  })
+})
+
+describe('3. admin: stock', () => {
+  let s: Awaited<ReturnType<typeof signedIn>>
+  beforeAll(async () => (s = await signedIn('ADMIN')))
+  afterAll(async () => void (await s?.c.auth.signOut()))
+
+  it('cannot set a stock quantity directly', async () => {
+    const { data } = await s.c.from('stock_items').select('id, qty_on_hand').limit(1)
+    expect(data?.length, 'needs at least one stock item').toBeGreaterThan(0)
+    const { error } = await s.c
+      .from('stock_items')
+      .update({ qty_on_hand: data![0].qty_on_hand + 100 })
+      .eq('id', data![0].id)
+    expect(error?.message).toMatch(/only through a movement/)
+  })
+})

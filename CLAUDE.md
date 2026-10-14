@@ -215,7 +215,7 @@ npm run gen:types                          # regenerate src/lib/database.types.t
 
 1. **Keyboards:** ~~accessory or tagged asset?~~ Decided 13/10/2026: accessory, like Mouse.
 2. **HR access:** strictly view-only, or allowed to add joiners and mark leavers?
-3. **FLT-0001** (Lanka PC, cost 0): was it under warranty?
+3. **FLT-0001** (Lanka PC, cost 0): ~~was it under warranty?~~ Decided 14/10/2026: no.
 4. **Per-category numbers:**
    - typical replacement cost and minimum spares for each category
    - the AC service interval (90 days is a placeholder)
