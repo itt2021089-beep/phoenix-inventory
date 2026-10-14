@@ -20,6 +20,8 @@ function renderGuard(state: Partial<AuthState>) {
     userId: null,
     email: null,
     profile: null,
+    profileError: false,
+    retryProfile: vi.fn(),
     signIn: vi.fn(),
     signOut: vi.fn(),
     ...state,
@@ -61,6 +63,14 @@ describe('RequireAuth', () => {
 
     expect(screen.getByText('no access page')).toBeInTheDocument()
     expect(screen.queryByText('protected page')).not.toBeInTheDocument()
+  })
+
+  it('says it could not reach the server, not "ask IT", when the profile cannot be read', () => {
+    renderGuard({ userId: 'u-1', email: 'admin@example.com', profile: null, profileError: true })
+
+    expect(screen.getByText('Could not reach the server')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    expect(screen.queryByText('no access page')).not.toBeInTheDocument()
   })
 
   it('lets a user with a profile row through', () => {

@@ -28,6 +28,7 @@ import { StockListPage } from '@/features/stock/StockListPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
+import { AuditLogPage } from '@/features/audit/AuditLogPage'
 import { ReportsPage } from '@/features/reports/ReportsPage'
 import { LabelsPrintPage } from '@/features/labels/LabelsPrintPage'
 import { LeaverClearancePrint } from '@/features/print/LeaverClearancePrint'
@@ -36,7 +37,9 @@ import { SettingsPage } from '@/features/settings/SettingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
+    // No retry here: the Supabase client already retries a failed read three times (about
+    // 7 s). A second round would leave "Loading..." up for 15 s before saying it failed.
+    queries: { staleTime: 30_000, retry: false, refetchOnWindowFocus: false },
   },
 })
 
@@ -78,6 +81,7 @@ export default function App() {
                   <Route path="people/new" element={<PersonFormPage />} />
                   <Route path="people/:id/edit" element={<PersonFormPage />} />
                   <Route path="import" element={<ImportPage />} />
+                  <Route path="audit" element={<AuditLogPage />} />
                   <Route path="issue" element={<IssuePage />} />
                   <Route path="return" element={<ReturnPage />} />
                   <Route path="transfer" element={<TransferPage />} />

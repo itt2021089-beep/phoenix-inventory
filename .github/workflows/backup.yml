@@ -1,0 +1,63 @@
+# Weekly encrypted backup of PROD's data (docs/RESTORE.md says how to get it back).
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_DB_URL     the PROD connection string. Use the *Session pooler* one from the
+#                       Supabase dashboard (Connect): GitHub's runners have no IPv6, and the
+#                       direct connection is IPv6 only.
+#   BACKUP_PASSPHRASE   a long passphrase; keep a copy somewhere safe that is NOT this repo.
+#                       Without it the backups cannot be opened.
+#
+# The file is encrypted (AES-256) before it leaves the job, because it holds staff NIDs.
+# It is kept as a workflow artifact for 90 days. Photos are not included (they are in Storage).
+name: Weekly backup
+
+on:
+  schedule:
+    - cron: '30 20 * * 0' # Sunday 20:30 UTC = Monday 02:00 Sri Lanka time
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Postgres 17 client
+        # pg_dump must be the same version as the server or newer. Supabase projects are on 17;
+        # if a project is ever on a newer version, change the number here.
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      - name: Back up and encrypt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL}" ] || [ -z "${BACKUP_PASSPHRASE}" ]; then
+            echo "::error::Set the SUPABASE_DB_URL and BACKUP_PASSPHRASE secrets."
+            exit 1
+          fi
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          mkdir -p out
+          scripts/backup.sh out | tee out/manifest.txt
+          # The manifest (table names and row counts, no data) goes in the job summary.
+          { echo '### Backup'; echo '```'; sed -n '/--- manifest ---/,$p' out/manifest.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          rm out/manifest.txt
+
+      - name: Keep it for 90 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: phoenix-backup
+          path: out/phoenix-backup-*.tar.gz.gpg
+          retention-days: 90
+          if-no-files-found: error

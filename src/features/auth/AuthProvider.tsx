@@ -22,6 +22,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null)
   const [email, setEmail] = useState<string | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileError, setProfileError] = useState(false)
+  // Bumped by retryProfile() to run the effect's session read again.
+  const [attempt, setAttempt] = useState(0)
+
+  const retryProfile = useCallback(() => {
+    setLoading(true)
+    setAttempt((n) => n + 1)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -30,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return
       setUserId(id)
       setEmail(mail)
+      setProfileError(false)
       if (!id) {
         setProfile(null)
         setLoading(false)
@@ -39,9 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const row = await fetchProfile(id)
         if (!cancelled) setProfile(row)
       } catch {
-        // Treat an unreadable profile as no profile: the user sees the "ask IT" screen
-        // rather than a broken app.
-        if (!cancelled) setProfile(null)
+        // An unreadable profile is not "no profile": a dropped connection must not tell a
+        // real user to ask IT for access. Nobody gets in, and the screen offers a retry.
+        if (!cancelled) {
+          setProfile(null)
+          setProfileError(true)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -60,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true
       sub.subscription.unsubscribe()
     }
-  }, [])
+  }, [attempt])
 
   const signIn = useCallback(async (mail: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email: mail, password })
@@ -73,8 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const value = useMemo<AuthState>(
-    () => ({ loading, userId, email, profile, signIn, signOut }),
-    [loading, userId, email, profile, signIn, signOut],
+    () => ({ loading, userId, email, profile, profileError, retryProfile, signIn, signOut }),
+    [loading, userId, email, profile, profileError, retryProfile, signIn, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

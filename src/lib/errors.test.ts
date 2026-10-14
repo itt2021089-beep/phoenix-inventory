@@ -17,4 +17,16 @@ describe('errorMessage', () => {
     expect(errorMessage({ message: 'not allowed' })).toBe('not allowed')
     expect(errorMessage('weird')).toBe('Something went wrong. Please try again.')
   })
+
+  it('says in plain words when the connection is down', () => {
+    for (const m of [
+      'TypeError: Failed to fetch',
+      'NetworkError when attempting to fetch resource.',
+      'Load failed',
+    ]) {
+      expect(errorMessage({ message: m })).toBe(
+        'Could not reach the server. Check the internet connection and try again.',
+      )
+    }
+  })
 })

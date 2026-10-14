@@ -13,6 +13,14 @@ export type AuthState = {
    * "no profile, no access" (CLAUDE.md), and the app shows the ask-IT screen.
    */
   profile: Profile | null
+  /**
+   * True when the profile could not be read at all (no network, server down). That is not
+   * the same as having no profile, so the app says "could not reach the server" and offers a
+   * retry instead of telling a real admin to ask IT for access.
+   */
+  profileError: boolean
+  /** Try reading the profile again after a failure. */
+  retryProfile: () => void
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
