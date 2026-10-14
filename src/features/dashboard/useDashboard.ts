@@ -59,3 +59,18 @@ export function departmentGrid(rows: Tables<'v_department_summary'>[]) {
     rows.find((r) => (r.department ?? 'Common') === dep)?.department_id ?? null
   return { categories, departments, cell, idOf }
 }
+
+/**
+ * The one count the menu shows (open faults). Kept under the dashboard key, so anything that
+ * refreshes the dashboard after a change refreshes the menu too.
+ */
+export function useNavCounts() {
+  return useQuery({
+    queryKey: [...dashboardKeys.all, 'nav'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('v_dashboard').select('open_faults').maybeSingle()
+      if (error) throw error
+      return { openFaults: data?.open_faults ?? 0 }
+    },
+  })
+}

@@ -1,89 +1,87 @@
-import {
-  ArrowLeftRight,
-  BarChart3,
-  History,
-  Boxes,
-  ClipboardList,
-  LayoutDashboard,
-  LogOut,
-  Package,
-  FileSpreadsheet,
-  Settings,
-  Users,
-  Wrench,
-  type LucideIcon,
-} from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 
 import { useAuth } from '@/features/auth/useAuth'
+import { useNavCounts } from '@/features/dashboard/useDashboard'
 import { USER_ROLE_LABELS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
+import { isNavActive, navFor, phoneBarFor, type NavItem } from './nav'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 
-type NavItem = {
-  to: string
-  label: string
-  /** Shorter label for the phone's bottom bar. */
-  short?: string
-  icon: LucideIcon
-  adminOnly?: boolean
-  /** Left off the phone's five-slot bottom bar (still in the sidebar). */
-  desktopOnly?: boolean
+/** A small red count, e.g. open faults. Nothing when it is 0. */
+function CountBadge({ n, className }: { n: number | undefined; className?: string }) {
+  if (!n) return null
+  return (
+    <span
+      className={cn(
+        'rounded-full bg-destructive px-1.5 text-[11px] leading-[18px] font-medium text-destructive-foreground tabular-nums',
+        className,
+      )}
+    >
+      {n}
+    </span>
+  )
 }
 
-const NAV: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/assets', label: 'Assets', icon: Boxes },
-  { to: '/issue', label: 'Issue / Return', short: 'Issue', icon: ArrowLeftRight, adminOnly: true },
-  { to: '/people', label: 'People', icon: Users },
-  { to: '/faults', label: 'Faults', icon: Wrench, desktopOnly: true },
-  { to: '/service', label: 'Service', icon: ClipboardList, desktopOnly: true },
-  { to: '/stock', label: 'Stock', icon: Package, desktopOnly: true },
-  { to: '/reports', label: 'Reports', icon: BarChart3, desktopOnly: true },
-  { to: '/export', label: 'Excel', icon: FileSpreadsheet, desktopOnly: true },
-  { to: '/audit', label: 'Audit log', icon: History, adminOnly: true, desktopOnly: true },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
-
-/** Sidebar on a desktop, bottom nav on a phone. */
+/** Sidebar on a desktop, bottom bar on a phone. */
 export function AppLayout() {
   const { profile, signOut } = useAuth()
   const { pathname } = useLocation()
-  const nav = NAV.filter((n) => !n.adminOnly || profile?.role === 'admin')
-  const phoneNav = nav.filter((n) => !n.desktopOnly)
-  // Issue, Return and Transfer are one area: keep the item lit on all three.
-  const isActiveFor = (to: string, active: boolean) =>
-    to === '/issue' ? active || /^\/(return|transfer)/.test(pathname) : active
+  const counts = useNavCounts()
+  const groups = navFor(profile?.role)
+  const all = groups.flatMap((g) => g.items)
+  const phoneBar = phoneBarFor(profile?.role)
+    .map((to) => all.find((i) => i.to === to))
+    .filter((i): i is NavItem => !!i)
+  const countFor = (i: NavItem) => (i.badge === 'openFaults' ? counts.data?.openFaults : undefined)
+  // "More" is lit for every page that is not on the bar itself.
+  const moreActive = pathname === '/more' || !phoneBar.some((i) => isNavActive(i.to, pathname))
 
   return (
     <div className="min-h-dvh md:flex">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r bg-card md:flex md:flex-col">
-        <div className="border-b px-4 py-4">
-          <p className="font-semibold">Phoenix Inventory</p>
-          <p className="text-xs text-muted-foreground">Phoenix BPO Solutions</p>
+      <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 border-r bg-card md:flex md:flex-col">
+        <div className="flex items-center gap-2 px-4 py-4">
+          <span className="grid size-8 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
+            P
+          </span>
+          <div className="min-w-0">
+            <p className="truncate leading-tight font-semibold">Phoenix Inventory</p>
+            <p className="truncate text-xs text-muted-foreground">Phoenix BPO Solutions</p>
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-1 p-2">
-          {nav.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm',
-                  isActiveFor(to, isActive)
-                    ? 'bg-accent font-medium text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+        <nav className="flex-1 overflow-y-auto px-2 pb-2">
+          {groups.map((g) => (
+            <div key={g.title ?? 'top'} className="mb-3">
+              {g.title && (
+                <p className="px-3 pt-2 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  {g.title}
+                </p>
+              )}
+              {g.items.map((item) => {
+                const Icon = item.icon
+                const active = isNavActive(item.to, pathname)
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={cn(
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm',
+                      active
+                        ? 'bg-primary/10 font-medium text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden />
+                    <span className="flex-1">{item.label}</span>
+                    <CountBadge n={countFor(item)} />
+                  </NavLink>
                 )
-              }
-            >
-              <Icon className="size-4" aria-hidden />
-              {label}
-            </NavLink>
+              })}
+            </div>
           ))}
         </nav>
 
@@ -104,47 +102,48 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Phone header: the role badge and sign-out live here instead of the sidebar. */}
-        <header className="flex items-center justify-between gap-2 border-b bg-card px-4 py-3 md:hidden">
+        {/* Phone header: the role badge and sign-out live on the More page instead. */}
+        <header className="flex items-center gap-2 border-b bg-card px-4 py-3 md:hidden">
+          <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+            P
+          </span>
           <p className="truncate font-semibold">Phoenix Inventory</p>
-          <div className="flex items-center gap-2">
-            {profile && <Badge variant="secondary">{USER_ROLE_LABELS[profile.role]}</Badge>}
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Sign out"
-              onClick={() => void signOut()}
-            >
-              <LogOut className="size-4" aria-hidden />
-            </Button>
-          </div>
         </header>
 
-        <main className="flex-1 p-4 pb-20 md:p-6 md:pb-6">
+        <main className="mx-auto w-full max-w-6xl flex-1 p-4 pb-24 md:p-6 md:pb-8">
           <Outlet />
         </main>
 
-        {/* Phone bottom nav */}
-        <nav
-          className="fixed inset-x-0 bottom-0 grid border-t bg-card md:hidden"
-          style={{ gridTemplateColumns: `repeat(${phoneNav.length}, minmax(0, 1fr))` }}
-        >
-          {phoneNav.map(({ to, label, short, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center gap-1 px-1 py-2 text-[11px]',
-                  isActiveFor(to, isActive) ? 'text-foreground' : 'text-muted-foreground',
-                )
-              }
-            >
-              <Icon className="size-5" aria-hidden />
-              {short ?? label}
-            </NavLink>
-          ))}
+        {/* Phone bottom bar: the four most used pages, and More for the rest. */}
+        <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-5 border-t bg-card md:hidden">
+          {phoneBar.map((item) => {
+            const Icon = item.icon
+            const active = isNavActive(item.to, pathname)
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={cn(
+                  'relative flex flex-col items-center gap-1 px-1 py-2 text-[11px]',
+                  active ? 'font-medium text-primary' : 'text-muted-foreground',
+                )}
+              >
+                <Icon className="size-5" aria-hidden />
+                {item.short ?? item.label}
+                <CountBadge n={countFor(item)} className="absolute top-1 left-1/2 ml-2" />
+              </NavLink>
+            )
+          })}
+          <NavLink
+            to="/more"
+            className={cn(
+              'flex flex-col items-center gap-1 px-1 py-2 text-[11px]',
+              moreActive ? 'font-medium text-primary' : 'text-muted-foreground',
+            )}
+          >
+            <Menu className="size-5" aria-hidden />
+            More
+          </NavLink>
         </nav>
       </div>
     </div>
