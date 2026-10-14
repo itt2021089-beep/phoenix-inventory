@@ -1,7 +1,22 @@
-import { ArrowLeft, Copy, Pencil, QrCode } from 'lucide-react'
+import {
+  Archive,
+  ArrowLeft,
+  ArrowLeftRight,
+  ArrowRight,
+  Copy,
+  MapPin,
+  Pencil,
+  QrCode,
+  Repeat,
+  Trash2,
+  Undo2,
+  UserRound,
+  Wrench,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
+import { ActionMenu } from '@/components/ActionMenu'
 import { PageHeader } from '@/components/PageHeader'
 import { QueryState } from '@/components/QueryState'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -85,71 +100,118 @@ export function AssetPage() {
           </span>
         }
         description={[a.category?.name, a.make, a.model].filter(Boolean).join(' · ')}
-        actions={
-          isAdmin && (
-            <>
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/assets/${a.asset_tag}/edit`}>
-                  <Pencil /> Edit
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/print/labels?tags=${encodeURIComponent(a.asset_tag)}`}>
-                  <QrCode /> Print label
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/assets/new?from=${a.asset_tag}`}>
-                  <Copy /> Duplicate
-                </Link>
-              </Button>
-            </>
-          )
-        }
       />
+
+      {/* Who has it and where, first, because that is what most visits are for. */}
+      <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
+        {a.employee ? (
+          <UserRound className="size-5 shrink-0 text-primary" aria-hidden />
+        ) : (
+          <MapPin className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+        )}
+        <p className="min-w-0 text-sm">
+          {a.employee ? (
+            <>
+              With{' '}
+              <Link
+                to={`/people/${a.assigned_employee_id}`}
+                className="font-semibold hover:underline"
+              >
+                {a.employee.full_name}
+              </Link>
+              {' · '}
+              {a.department?.name ?? COMMON}
+              {a.location && ` · ${a.location.name}`}
+              {a.date_assigned && (
+                <span className="text-muted-foreground">, since {formatDate(a.date_assigned)}</span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="font-semibold">{a.location?.name ?? 'No location set'}</span>
+              {' · '}
+              {a.department?.name ?? COMMON}
+              {a.status === 'spare' && (
+                <span className="text-muted-foreground">, ready to issue</span>
+              )}
+            </>
+          )}
+        </p>
+      </div>
 
       {isAdmin && (
         <div className="flex flex-wrap gap-2">
           {a.status === 'spare' && (
             <Button asChild>
-              <Link to={`/issue?asset=${a.asset_tag}`}>Issue</Link>
+              <Link to={`/issue?asset=${a.asset_tag}`}>
+                <ArrowRight /> Issue
+              </Link>
             </Button>
           )}
           {a.status === 'in_use' && (
             <Button asChild>
-              <Link to={`/return?asset=${a.asset_tag}`}>Return</Link>
+              <Link to={`/return?asset=${a.asset_tag}`}>
+                <Undo2 /> Return
+              </Link>
             </Button>
           )}
           {a.status === 'in_use' && a.assigned_employee_id && (
             <Button variant="outline" asChild>
-              <Link to={`/transfer?asset=${a.asset_tag}`}>Transfer</Link>
-            </Button>
-          )}
-          {a.status === 'in_use' && a.assigned_employee_id && (
-            <Button variant="outline" onClick={() => setPanel('swap')}>
-              Swap for a spare
+              <Link to={`/transfer?asset=${a.asset_tag}`}>
+                <ArrowLeftRight /> Transfer
+              </Link>
             </Button>
           )}
           {active && (
             <Button variant="outline" onClick={() => setPanel('fault')}>
-              Open fault
+              <Wrench /> Open fault
             </Button>
           )}
-          {active && (
-            <Button variant="outline" onClick={() => setPanel('move')}>
-              Move
-            </Button>
-          )}
-          {active && (
-            <Button variant="outline" onClick={() => setPanel('retire')}>
-              Retire
-            </Button>
-          )}
-          {a.status !== 'disposed' && (
-            <Button variant="outline" onClick={() => setPanel('dispose')}>
-              Dispose
-            </Button>
-          )}
+          <ActionMenu
+            items={[
+              ...(a.status === 'in_use' && a.assigned_employee_id
+                ? [
+                    {
+                      label: 'Swap for a spare',
+                      icon: <Repeat />,
+                      onSelect: () => setPanel('swap'),
+                    },
+                  ]
+                : []),
+              ...(active
+                ? [{ label: 'Move', icon: <MapPin />, onSelect: () => setPanel('move') }]
+                : []),
+              'separator',
+              { label: 'Edit details', icon: <Pencil />, to: `/assets/${a.asset_tag}/edit` },
+              { label: 'Duplicate', icon: <Copy />, to: `/assets/new?from=${a.asset_tag}` },
+              {
+                label: 'Print QR label',
+                icon: <QrCode />,
+                to: `/print/labels?tags=${encodeURIComponent(a.asset_tag)}`,
+              },
+              'separator',
+              ...(active
+                ? [
+                    {
+                      label: 'Retire',
+                      icon: <Archive />,
+                      onSelect: () => setPanel('retire'),
+                      danger: true,
+                    },
+                  ]
+                : []),
+              ...(a.status !== 'disposed'
+                ? [
+                    {
+                      label: 'Dispose',
+                      icon: <Trash2 />,
+                      onSelect: () => setPanel('dispose'),
+                      danger: true,
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       )}
 
@@ -163,10 +225,6 @@ export function AssetPage() {
       <Card>
         <CardContent>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
-            <Detail label="Assigned to">{a.employee?.full_name ?? 'Nobody'}</Detail>
-            <Detail label="Department">{a.department?.name ?? COMMON}</Detail>
-            <Detail label="Location / desk">{a.location?.name ?? 'Not set'}</Detail>
-            <Detail label="Date assigned">{formatDate(a.date_assigned)}</Detail>
             <Detail label="Condition">{labelOf(CONDITION_LABELS, a.condition)}</Detail>
             <Detail label="Serial number">
               {a.serial_number && <span className="font-mono">{a.serial_number}</span>}
