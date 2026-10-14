@@ -13,6 +13,9 @@ import { RequireAdmin } from '@/features/auth/RequireAdmin'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { PlaceholderPage } from '@/features/dashboard/PlaceholderPage'
+import { PeopleListPage } from '@/features/people/PeopleListPage'
+import { PersonFormPage } from '@/features/people/PersonFormPage'
+import { PersonPage } from '@/features/people/PersonPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 
 const queryClient = new QueryClient({
@@ -37,9 +40,13 @@ export default function App() {
                 <Route path="assets/:tag" element={<AssetPage />} />
                 {/* Viewers can open Settings and see the lists; the edit controls are admin-only. */}
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="people" element={<PeopleListPage />} />
+                <Route path="people/:id" element={<PersonPage />} />
                 <Route element={<RequireAdmin />}>
                   <Route path="assets/new" element={<AddAssetPage />} />
                   <Route path="assets/:tag/edit" element={<EditAssetPage />} />
+                  <Route path="people/new" element={<PersonFormPage />} />
+                  <Route path="people/:id/edit" element={<PersonFormPage />} />
                   {/* Built in the next PR (Phase 1, PR C). */}
                   <Route
                     path="issue"
@@ -54,10 +61,6 @@ export default function App() {
                     element={<PlaceholderPage title="Transfer" phase="the next update" />}
                   />
                 </Route>
-                <Route
-                  path="people"
-                  element={<PlaceholderPage title="People" phase="the next update" />}
-                />
                 <Route path="faults" element={<PlaceholderPage title="Faults" phase="Phase 2" />} />
                 <Route
                   path="*"
