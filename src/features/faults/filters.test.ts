@@ -92,9 +92,7 @@ describe('filterFaults', () => {
 
 describe('faultRow', () => {
   it('uses the workbook labels and DD/MM/YYYY', () => {
-    expect(
-      faultRow(fault({ status: 'with_vendor', cause: 'wear_and_tear', under_warranty: true })),
-    ).toEqual([
+    expect(faultRow(fault({ status: 'with_vendor', under_warranty: true }))).toEqual([
       'FLT-0001',
       'PBS-LAP-001',
       '01/10/2026',
@@ -107,8 +105,6 @@ describe('faultRow', () => {
       '',
       '',
       'Yes',
-      'Wear and tear',
-      '',
     ])
   })
   it('falls back to the name typed on the form', () => {

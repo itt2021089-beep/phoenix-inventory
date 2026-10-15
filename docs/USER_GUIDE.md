@@ -19,10 +19,10 @@ The left menu (on a phone: the bar at the bottom, and **More** for the rest) is 
 
 ## Finding things
 - **Assets**: every item, with who has it and where it is. Type in the search box (tag like `PBS-LAP-001`, make, model, name). The filters narrow it down. **Export to Excel** gives the same list as a spreadsheet.
-- **Group by** on the Assets page shows the list in groups: by **Department** (what Sales has), by **Person** (what one person holds, with their accessories), by Location, Category or Status. Click a group to open it.
+- **Group by** on the Assets page shows the list in groups: by **Department** (what Sales has), by **Person** (what one person holds, with their accessories), by Category or by Status. Click a group to open it.
 - **People**: every staff member, with the items they hold. You can see their National ID (NID) numbers, so please treat screens and printouts as confidential.
 - Click any item or person for the full history of what happened to it. An item's page says first who has it and where it is.
-- **Reports**: repair-or-replace, spend per department per month, faults by cause, and service history by vendor. Each has **Export to Excel**.
+- **Reports**: service history by vendor (every service job, grouped by who did the work), with **Export to Excel**.
 
 ## Printing a leaver clearance sheet (HR)
 1. Open **People**, click the person who is leaving.
@@ -32,7 +32,7 @@ The left menu (on a phone: the bar at the bottom, and **More** for the rest) is 
 
 ## What you will not see
 - Buttons like Issue, Return, Add, Edit, Log a fault or More actions. They are for IT only.
-- The audit log and the import, which are IT-only.
+- Importing from Excel, which is IT-only.
 
 ## Something looks wrong?
 Tell Sahan. If a page will not load, check the internet connection first: the page says "Could not reach the server" when that is the problem.

@@ -5,8 +5,6 @@ export type IssueLine = {
   assetId: string
   condition: Condition
   accessoryTypeIds: number[]
-  /** 1-3 condition photos, uploaded after the issue is saved. */
-  photos: File[]
 }
 
 export function issueItems(lines: IssueLine[]) {
@@ -27,8 +25,6 @@ export type ReturnLine = {
   accessories: Record<number, boolean>
   nextStatus: NextStatus
   faultDescription: string
-  /** 1-3 condition photos, uploaded after the return is saved. */
-  photos: File[]
 }
 
 export function returnItems(lines: ReturnLine[]) {

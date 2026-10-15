@@ -119,7 +119,6 @@ export const GROUP_BY = {
   '': 'None',
   department: 'Department',
   person: 'Person',
-  location: 'Location',
   category: 'Category',
   status: 'Status',
 } as const
@@ -149,8 +148,7 @@ function countsText(values: string[]): string {
 
 /**
  * Splits the (already filtered) list into groups: by department (Common last), by the person
- * holding it (nobody last), by location (none last), by category or by status (in the usual
- * status order). Each group carries a one-line summary of what is in it.
+ * holding it (nobody last), by category or by status (in the usual status order). Each group carries a one-line summary of what is in it.
  */
 export function groupAssets(rows: AssetListRow[], by: GroupBy): AssetGroup[] {
   if (!by) return []
@@ -164,10 +162,6 @@ export function groupAssets(rows: AssetListRow[], by: GroupBy): AssetGroup[] {
         return a.assigned_employee_id === null
           ? ['nobody', 'Not with anyone', true]
           : [a.assigned_employee_id, a.employee?.full_name ?? '', false]
-      case 'location':
-        return a.location_id === null
-          ? ['none', 'No location', true]
-          : [String(a.location_id), a.location?.name ?? '', false]
       case 'category':
         return [String(a.category_id), a.category?.name ?? '', false]
       case 'status':

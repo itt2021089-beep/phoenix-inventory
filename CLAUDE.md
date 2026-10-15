@@ -129,16 +129,16 @@ npm run backup                             # encrypted dump, needs SUPABASE_DB_U
    - If a fault is fixed on its own, the cost goes on the fault.
    - If it's fixed as part of a service job, the cost goes on the service line; the fault links to
      that line and keeps cost 0.
-8. **"Who broke it" is three separate facts:**
+8. **A fault records two facts about people:**
    - `reported_by`: who told us.
    - The holder at the time: filled in automatically from the asset's current assignee.
-   - `responsible_employee_id` + `cause`: Sahan's finding after checking. Only admin writes findings.
+   - Removed 15/10/2026 to keep the app simple: Sahan's finding (`cause`, `responsible_employee_id`,
+     `finding_notes`). The columns stay in the database, but no screen reads or writes them.
 9. **Spare pool:** each category has a `min_spares` value. The dashboard warns when the Spare count
    for that category is below it.
-10. **Repair vs replace:** flag an asset when either is true (both thresholds live in `settings`):
-    - total repair spend ≥ 50% of its replacement basis, which is the purchase price, or else the
-      category's typical replacement cost
-    - it had 3 or more faults in the last 12 months
+10. **Repair vs replace:** removed 15/10/2026 to keep the app simple. No flags, no thresholds and no
+    typical replacement cost on screen; the asset page still shows its repair spend so far. The
+    `v_asset_costs` and `v_spend_monthly` views and the settings rows stay in the database, unused.
 11. **Reminders:** warranties ending and services due within 30 days (a setting), or overdue, appear
     on the dashboard.
 12. **Handover form:** issue, return and transfer can produce the printable company handover form
@@ -219,6 +219,6 @@ npm run backup                             # encrypted dump, needs SUPABASE_DB_U
 2. **HR access:** strictly view-only, or allowed to add joiners and mark leavers?
 3. **FLT-0001** (Lanka PC, cost 0): ~~was it under warranty?~~ Decided 14/10/2026: no.
 4. **Per-category numbers:**
-   - typical replacement cost and minimum spares for each category
+   - minimum spares for each category (typical replacement cost is no longer used)
    - the AC service interval (90 days is a placeholder)
 5. **AC units:** which rooms have them, and which vendor did the recent cleaning and repair job.

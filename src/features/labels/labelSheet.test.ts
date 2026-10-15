@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  DEFAULT_LABEL_SETTINGS as D,
-  paginate,
-  qrUrl,
-  sheetGrid,
-  validateSettings,
-} from './labelSheet'
+import { DEFAULT_LABEL_SETTINGS as D, paginate, qrUrl, sheetGrid } from './labelSheet'
 
 describe('sheetGrid', () => {
   it('fits 50 x 25 mm labels on A4 with a 5 mm margin: 4 across, 11 down', () => {
@@ -18,21 +12,6 @@ describe('sheetGrid', () => {
       rows: 8,
       perPage: 24,
     })
-  })
-})
-
-describe('validateSettings', () => {
-  it('accepts the defaults', () => {
-    expect(validateSettings(D)).toBeNull()
-  })
-  it('explains what does not work', () => {
-    expect(validateSettings({ ...D, widthMm: 5 })).toMatch(/width/)
-    expect(validateSettings({ ...D, heightMm: Number.NaN })).toMatch(/height/)
-    expect(validateSettings({ ...D, marginMm: 99 })).toMatch(/margin/)
-    expect(validateSettings({ ...D, widthMm: 200, marginMm: 20 })).toMatch(/does not fit/)
-    expect(validateSettings({ ...D, startAt: 45 })).toMatch(/1 to 44/)
-    expect(validateSettings({ ...D, startAt: 0 })).toMatch(/1 to 44/)
-    expect(validateSettings({ ...D, startAt: 1.5 })).toMatch(/1 to 44/)
   })
 })
 

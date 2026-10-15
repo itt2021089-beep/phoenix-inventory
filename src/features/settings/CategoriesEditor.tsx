@@ -20,7 +20,6 @@ import { CATEGORY_GROUP_LABELS } from '@/lib/constants'
 import type { Json } from '@/lib/database.types'
 import { type Category, type CustomField, customFieldsOf } from '@/lib/db'
 import { errorMessage } from '@/lib/errors'
-import { formatMoney } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
 
 import { type Draft, draftToRow, toDraft } from './categoryDraft'
@@ -125,18 +124,6 @@ export function CategoriesEditor({ rows, canEdit }: { rows: Category[]; canEdit:
             inputMode="numeric"
             value={draft.min_spares}
             onChange={(e) => set({ min_spares: e.target.value })}
-          />
-        </Field>
-        <Field
-          label="Typical replacement cost (LKR)"
-          htmlFor="cat-cost"
-          hint="Used when the purchase price is unknown."
-        >
-          <Input
-            id="cat-cost"
-            inputMode="decimal"
-            value={draft.typical_replacement_cost}
-            onChange={(e) => set({ typical_replacement_cost: e.target.value })}
           />
         </Field>
         <Field
@@ -272,7 +259,6 @@ export function CategoriesEditor({ rows, canEdit }: { rows: Category[]; canEdit:
             <TableHead>Prefix</TableHead>
             <TableHead className="hidden md:table-cell">Next tag</TableHead>
             <TableHead className="text-right">Min spares</TableHead>
-            <TableHead className="hidden text-right md:table-cell">Typical cost</TableHead>
             <TableHead className="hidden text-right md:table-cell">Service every</TableHead>
             <TableHead className="hidden lg:table-cell">Extra fields</TableHead>
             <TableHead>Active</TableHead>
@@ -283,7 +269,7 @@ export function CategoriesEditor({ rows, canEdit }: { rows: Category[]; canEdit:
           {rows.map((c) =>
             editing === c.id ? (
               <TableRow key={c.id}>
-                <TableCell colSpan={9}>{form}</TableCell>
+                <TableCell colSpan={8}>{form}</TableCell>
               </TableRow>
             ) : (
               <TableRow key={c.id} className={c.is_active ? undefined : 'text-muted-foreground'}>
@@ -298,9 +284,6 @@ export function CategoriesEditor({ rows, canEdit }: { rows: Category[]; canEdit:
                   PBS-{c.tag_prefix}-{String(c.next_tag_number).padStart(3, '0')}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{c.min_spares}</TableCell>
-                <TableCell className="hidden text-right tabular-nums md:table-cell">
-                  {formatMoney(c.typical_replacement_cost)}
-                </TableCell>
                 <TableCell className="hidden text-right tabular-nums md:table-cell">
                   {c.service_interval_days ? `${c.service_interval_days} days` : ''}
                 </TableCell>

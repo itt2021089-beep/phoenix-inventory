@@ -190,24 +190,6 @@ export function useUpdateFault() {
   })
 }
 
-/** Sahan's finding: kept apart from who reported it and who held it (CLAUDE.md, rule 8). */
-export function useSaveFinding() {
-  const invalidate = useInvalidateFaults()
-  return useMutation({
-    mutationFn: async (args: {
-      id: number
-      cause: string | null
-      responsible_employee_id: string | null
-      finding_notes: string | null
-    }) => {
-      const { id, ...finding } = args
-      const { error } = await supabase.from('fault_log').update(finding).eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: invalidate,
-  })
-}
-
 export function useSendForRepair() {
   const invalidate = useInvalidateFaults()
   return useMutation({

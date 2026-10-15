@@ -7,7 +7,6 @@ import {
   MapPin,
   Pencil,
   QrCode,
-  Repeat,
   Trash2,
   Undo2,
   UserRound,
@@ -31,11 +30,10 @@ import { formatDate, formatDateTime, formatMoney } from '@/lib/format'
 import { useAsset, useTimeline } from './api'
 import { EndOfLifePanel, MovePanel, OpenFaultPanel } from './AssetActionPanels'
 import { AssetPhotos } from './AssetPhotos'
-import { SwapPanel } from './SwapPanel'
 import { RepairHistory } from './RepairHistory'
 import { changeExtras, changeTitle, describeChange } from './timeline'
 
-type Panel = null | 'move' | 'fault' | 'swap' | 'retire' | 'dispose'
+type Panel = null | 'move' | 'fault' | 'retire' | 'dispose'
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   if (children === null || children === undefined || children === '') return null
@@ -171,15 +169,6 @@ export function AssetPage() {
           )}
           <ActionMenu
             items={[
-              ...(a.status === 'in_use' && a.assigned_employee_id
-                ? [
-                    {
-                      label: 'Swap for a spare',
-                      icon: <Repeat />,
-                      onSelect: () => setPanel('swap'),
-                    },
-                  ]
-                : []),
               ...(active
                 ? [{ label: 'Move', icon: <MapPin />, onSelect: () => setPanel('move') }]
                 : []),
@@ -217,7 +206,6 @@ export function AssetPage() {
         </div>
       )}
 
-      {panel === 'swap' && <SwapPanel asset={a} onDone={() => setPanel(null)} />}
       {panel === 'fault' && <OpenFaultPanel asset={a} onDone={() => setPanel(null)} />}
       {panel === 'move' && <MovePanel asset={a} onDone={() => setPanel(null)} />}
       {(panel === 'retire' || panel === 'dispose') && (
@@ -272,7 +260,7 @@ export function AssetPage() {
 
       <RepairHistory assetId={a.id} price={a.purchase_price} />
 
-      <AssetPhotos assetId={a.id} timeline={timeline.data ?? []} />
+      <AssetPhotos assetId={a.id} />
 
       <Card>
         <CardHeader>

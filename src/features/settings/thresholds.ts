@@ -1,11 +1,5 @@
-/** The numbers that drive reminders, repair-vs-replace and the public report limits. */
-export type ThresholdKey =
-  | 'repair_replace_pct'
-  | 'repeat_fault_count'
-  | 'repeat_fault_months'
-  | 'reminder_window_days'
-  | 'report_rate_limit'
-  | 'report_rate_limit_total'
+/** The numbers that drive reminders and the public report limits. */
+export type ThresholdKey = 'reminder_window_days' | 'report_rate_limit' | 'report_rate_limit_total'
 
 export type Threshold = {
   key: ThresholdKey
@@ -18,29 +12,6 @@ export type Threshold = {
 }
 
 export const THRESHOLDS: Threshold[] = [
-  {
-    key: 'repair_replace_pct',
-    label: 'Flag when repair spend reaches',
-    hint: 'Of what it would cost to replace (its purchase price, else the category’s typical cost).',
-    fallback: 50,
-    max: 1000,
-    suffix: '%',
-  },
-  {
-    key: 'repeat_fault_count',
-    label: 'Flag after this many faults',
-    hint: 'An asset with this many faults within the period below is flagged, whatever they cost.',
-    fallback: 3,
-    max: 100,
-  },
-  {
-    key: 'repeat_fault_months',
-    label: 'Period for repeat faults',
-    hint: 'How far back faults are counted.',
-    fallback: 12,
-    max: 120,
-    suffix: 'months',
-  },
   {
     key: 'reminder_window_days',
     label: 'Remind me this far ahead',

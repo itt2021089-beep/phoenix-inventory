@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router'
 
 import { AppLayout } from '@/components/AppLayout'
 import { MorePage } from '@/components/MorePage'
+import { NotFoundPage } from '@/components/NotFoundPage'
 import { AddAssetPage } from '@/features/assets/AddAssetPage'
 import { AssetPage } from '@/features/assets/AssetPage'
 import { AssetsListPage } from '@/features/assets/AssetsListPage'
@@ -13,7 +14,6 @@ import { NoAccessPage } from '@/features/auth/NoAccessPage'
 import { RequireAdmin } from '@/features/auth/RequireAdmin'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
-import { PlaceholderPage } from '@/features/dashboard/PlaceholderPage'
 import { FaultPage } from '@/features/faults/FaultPage'
 import { FaultsListPage } from '@/features/faults/FaultsListPage'
 import { IssuePage } from '@/features/issue/IssuePage'
@@ -29,7 +29,6 @@ import { StockListPage } from '@/features/stock/StockListPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
-import { AuditLogPage } from '@/features/audit/AuditLogPage'
 import { ReportsPage } from '@/features/reports/ReportsPage'
 import { LabelsPrintPage } from '@/features/labels/LabelsPrintPage'
 import { LeaverClearancePrint } from '@/features/print/LeaverClearancePrint'
@@ -82,8 +81,9 @@ export default function App() {
                   <Route path="assets/:tag/edit" element={<EditAssetPage />} />
                   <Route path="people/new" element={<PersonFormPage />} />
                   <Route path="people/:id/edit" element={<PersonFormPage />} />
+                  {/* Not in the menu: kept only to load the real workbook into PROD at go-live
+                      (docs/GO_LIVE.md step 5). Delete it, and its code, once that is done. */}
                   <Route path="import" element={<ImportPage />} />
-                  <Route path="audit" element={<AuditLogPage />} />
                   <Route path="issue" element={<IssuePage />} />
                   <Route path="return" element={<ReturnPage />} />
                   <Route path="transfer" element={<TransferPage />} />
@@ -96,10 +96,7 @@ export default function App() {
                 <Route path="stock" element={<StockListPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="stock/:code" element={<StockItemPage />} />
-                <Route
-                  path="*"
-                  element={<PlaceholderPage title="Page not found" phase="a later phase" />}
-                />
+                <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Route>
           </Routes>

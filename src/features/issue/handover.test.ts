@@ -16,15 +16,14 @@ const line = (over: Partial<ReturnLine>): ReturnLine => ({
   accessories: {},
   nextStatus: 'spare',
   faultDescription: '',
-  photos: [],
   ...over,
 })
 
 describe('issueItems', () => {
   it('maps lines to the issue_assets items, accessories de-duplicated', () => {
-    expect(
-      issueItems([{ assetId: 'a1', condition: 'good', accessoryTypeIds: [2, 1, 2], photos: [] }]),
-    ).toEqual([{ asset_id: 'a1', condition: 'good', accessory_type_ids: [1, 2] }])
+    expect(issueItems([{ assetId: 'a1', condition: 'good', accessoryTypeIds: [2, 1, 2] }])).toEqual(
+      [{ asset_id: 'a1', condition: 'good', accessory_type_ids: [1, 2] }],
+    )
   })
 })
 

@@ -2,7 +2,6 @@ import { ArrowLeft, Printer } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 
-import { Field } from '@/components/Field'
 import { QueryState } from '@/components/QueryState'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -22,22 +21,13 @@ import {
   paginate,
   qrUrl,
   sheetGrid,
-  validateSettings,
 } from './labelSheet'
 
-const SETTINGS_KEY = 'phoenix-inventory.label-settings'
-
-/** Label size is a property of the sticker sheets in this office's printer, so it is remembered here. */
-function loadSettings(): LabelSettings {
-  try {
-    const saved = JSON.parse(
-      localStorage.getItem(SETTINGS_KEY) ?? 'null',
-    ) as Partial<LabelSettings> | null
-    return { ...DEFAULT_LABEL_SETTINGS, ...saved, startAt: 1 }
-  } catch {
-    return DEFAULT_LABEL_SETTINGS
-  }
-}
+/**
+ * One label size for every sheet: 50 x 25 mm on A4, starting at the first label (the size and
+ * start position options were removed to keep printing simple).
+ */
+const SETTINGS: LabelSettings = DEFAULT_LABEL_SETTINGS
 
 const isActive = (a: AssetListRow) => a.status !== 'retired' && a.status !== 'disposed'
 
@@ -74,7 +64,6 @@ function LabelsForm({
   const [ticked, setTicked] = useState<Set<string>>(new Set(initiallyTicked))
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
-  const [settings, setSettings] = useState<LabelSettings>(loadSettings)
   const [afterPrint, setAfterPrint] = useState(false)
 
   // The browser tells us when the print dialog closes; that is when to offer "mark as printed",
@@ -94,26 +83,13 @@ function LabelsForm({
       ),
   )
   const chosen = useMemo(() => assets.filter((a) => ticked.has(a.id)), [assets, ticked])
-  const problem = validateSettings(settings)
-  const pages = useMemo(
-    () => (problem ? [] : paginate(chosen, settings)),
-    [chosen, settings, problem],
-  )
-  const grid = sheetGrid(settings)
+  const pages = useMemo(() => paginate(chosen, SETTINGS), [chosen])
+  const grid = sheetGrid(SETTINGS)
   const base = import.meta.env.VITE_PUBLIC_APP_URL as string | undefined
   const urls = chosen.map((a) => qrUrl(a.asset_tag, base, window.location.origin))
   const qr = useQrSvgs(urls)
   const unprinted = assets.filter((a) => !a.label_printed_at)
 
-  function setNum(key: keyof LabelSettings, value: string) {
-    const next = { ...settings, [key]: value === '' ? Number.NaN : Number(value) }
-    setSettings(next)
-    try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...next, startAt: 1 }))
-    } catch {
-      /* not remembering is fine */
-    }
-  }
   const toggle = (id: string) =>
     setTicked((cur) => {
       const next = new Set(cur)
@@ -211,60 +187,15 @@ function LabelsForm({
           </ul>
         </section>
 
-        <section aria-label="Label size" className="space-y-3 rounded-xl border bg-card p-4">
-          <h2 className="font-medium">2. Label size and sheet</h2>
-          <div className="grid gap-3 sm:grid-cols-4">
-            <Field label="Label width (mm)" htmlFor="label-w">
-              <Input
-                id="label-w"
-                inputMode="decimal"
-                value={Number.isNaN(settings.widthMm) ? '' : settings.widthMm}
-                onChange={(e) => setNum('widthMm', e.target.value)}
-              />
-            </Field>
-            <Field label="Label height (mm)" htmlFor="label-h">
-              <Input
-                id="label-h"
-                inputMode="decimal"
-                value={Number.isNaN(settings.heightMm) ? '' : settings.heightMm}
-                onChange={(e) => setNum('heightMm', e.target.value)}
-              />
-            </Field>
-            <Field label="Sheet margin (mm)" htmlFor="label-m">
-              <Input
-                id="label-m"
-                inputMode="decimal"
-                value={Number.isNaN(settings.marginMm) ? '' : settings.marginMm}
-                onChange={(e) => setNum('marginMm', e.target.value)}
-              />
-            </Field>
-            <Field
-              label="Start at label no."
-              htmlFor="label-start"
-              hint={
-                grid.perPage
-                  ? `Skip used labels on a part-used sheet (1 to ${grid.perPage}).`
-                  : undefined
-              }
-            >
-              <Input
-                id="label-start"
-                inputMode="numeric"
-                value={Number.isNaN(settings.startAt) ? '' : settings.startAt}
-                onChange={(e) => setNum('startAt', e.target.value)}
-              />
-            </Field>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {problem ??
-              `${grid.cols} across, ${grid.rows} down: ${grid.perPage} labels on an A4 sheet.`}
-          </p>
-        </section>
+        <p className="text-sm text-muted-foreground">
+          {SETTINGS.widthMm} x {SETTINGS.heightMm} mm labels: {grid.cols} across, {grid.rows} down,{' '}
+          {grid.perPage} on an A4 sheet.
+        </p>
 
         <section aria-label="Print" className="flex flex-wrap items-center gap-3">
           <Button
             size="lg"
-            disabled={!chosen.length || !!problem || qr.isLoading}
+            disabled={!chosen.length || qr.isLoading}
             onClick={() => {
               setAfterPrint(false)
               window.print()
@@ -309,7 +240,7 @@ function LabelsForm({
             style={{
               width: `${A4_WIDTH_MM}mm`,
               height: `${A4_HEIGHT_MM}mm`,
-              padding: `${settings.marginMm}mm`,
+              padding: `${SETTINGS.marginMm}mm`,
               boxSizing: 'border-box',
               breakAfter: i < pages.length - 1 ? 'page' : 'auto',
               overflow: 'hidden',
@@ -318,8 +249,8 @@ function LabelsForm({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: `repeat(${grid.cols}, ${settings.widthMm}mm)`,
-                gridAutoRows: `${settings.heightMm}mm`,
+                gridTemplateColumns: `repeat(${grid.cols}, ${SETTINGS.widthMm}mm)`,
+                gridAutoRows: `${SETTINGS.heightMm}mm`,
               }}
             >
               {page.map((a, j) =>
@@ -338,9 +269,7 @@ function LabelsForm({
         ))}
         {pages.length === 0 && (
           <p className="py-10 text-sm text-muted-foreground print:hidden">
-            {problem
-              ? 'Fix the label size to see the sheet.'
-              : 'Tick some assets to see the labels.'}
+            Tick some assets to see the labels.
           </p>
         )}
       </div>
