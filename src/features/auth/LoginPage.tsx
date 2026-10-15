@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { Navigate, useLocation } from 'react-router'
 import { z } from 'zod'
 
+import { BrandMark } from '@/components/BrandMark'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,6 +50,7 @@ export function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
+          <BrandMark className="mb-1 size-14" />
           <CardTitle>Phoenix Inventory</CardTitle>
           <CardDescription>Sign in to continue.</CardDescription>
         </CardHeader>

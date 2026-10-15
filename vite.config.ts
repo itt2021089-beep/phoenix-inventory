@@ -18,7 +18,7 @@ export default defineConfig({
         // admin opens them; the app needs the network for Supabase anyway.
         globIgnores: ['**/App-*.js', '**/exceljs*.js'],
       },
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'logo-mark.png'],
       manifest: {
         name: 'Phoenix Inventory',
         short_name: 'Inventory',
