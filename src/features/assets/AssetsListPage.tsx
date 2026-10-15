@@ -53,9 +53,7 @@ function AssetTable({ rows, hide }: { rows: AssetListRow[]; hide?: GroupBy }) {
           {hide !== 'department' && (
             <TableHead className="hidden lg:table-cell">Department</TableHead>
           )}
-          {hide !== 'location' && (
-            <TableHead className="hidden lg:table-cell">Location / Desk</TableHead>
-          )}
+          <TableHead className="hidden lg:table-cell">Location / Desk</TableHead>
           {hide === 'person' && <TableHead className="hidden sm:table-cell">Accessories</TableHead>}
         </TableRow>
       </TableHeader>
@@ -85,9 +83,7 @@ function AssetTable({ rows, hide }: { rows: AssetListRow[]; hide?: GroupBy }) {
             {hide !== 'department' && (
               <TableCell className="hidden lg:table-cell">{a.department?.name ?? COMMON}</TableCell>
             )}
-            {hide !== 'location' && (
-              <TableCell className="hidden lg:table-cell">{a.location?.name}</TableCell>
-            )}
+            <TableCell className="hidden lg:table-cell">{a.location?.name}</TableCell>
             {hide === 'person' && (
               <TableCell className="hidden text-muted-foreground sm:table-cell">
                 {a.asset_accessories

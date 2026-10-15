@@ -32,23 +32,6 @@ export function sheetGrid(s: LabelSettings): SheetGrid {
   }
 }
 
-/** What is wrong with the settings, in plain words, or null when they can be printed. */
-export function validateSettings(s: LabelSettings): string | null {
-  for (const [name, v] of [
-    ['width', s.widthMm],
-    ['height', s.heightMm],
-  ] as const) {
-    if (!Number.isFinite(v) || v < 15 || v > 200) return `The label ${name} must be 15 to 200 mm.`
-  }
-  if (!Number.isFinite(s.marginMm) || s.marginMm < 0 || s.marginMm > 30)
-    return 'The sheet margin must be 0 to 30 mm.'
-  const g = sheetGrid(s)
-  if (g.perPage < 1) return 'That label size does not fit on an A4 sheet.'
-  if (!Number.isInteger(s.startAt) || s.startAt < 1 || s.startAt > g.perPage)
-    return `Start at a label from 1 to ${g.perPage}.`
-  return null
-}
-
 /**
  * Lays tags onto sheets. The first sheet skips (startAt - 1) labels, so a half-used sticker
  * sheet can go through the printer again. A skipped slot is null.

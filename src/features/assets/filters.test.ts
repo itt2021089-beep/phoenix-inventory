@@ -186,6 +186,5 @@ describe('groupAssets', () => {
       '2 In Use · 1 Spare',
     )
     expect(groupAssets(rows, 'status').map((x) => x.label)).toEqual(['In Use', 'Spare'])
-    expect(groupAssets(rows, 'location').at(-1)?.label).toBe('No location')
   })
 })
