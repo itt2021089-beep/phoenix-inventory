@@ -1435,6 +1435,7 @@ export type Database = {
       }
       _allow_asset_moves: { Args: never; Returns: string }
       _clean_tag: { Args: { p_tag: string }; Returns: string }
+      _department_name: { Args: { p_id: number }; Returns: string }
       _end_of_life: {
         Args: {
           p_asset_id: string
@@ -1452,6 +1453,7 @@ export type Database = {
       _require_admin: { Args: never; Returns: undefined }
       _restore_asset_moves: { Args: { p_previous: string }; Returns: undefined }
       _smallint_array: { Args: { p: Json }; Returns: number[] }
+      _status_label: { Args: { p_status: string }; Returns: string }
       add_assets: {
         Args: {
           p_category_id: number
@@ -1468,6 +1470,24 @@ export type Database = {
           p_date?: string
           p_next_status?: string
           p_reason?: string
+        }
+        Returns: undefined
+      }
+      change_asset_department: {
+        Args: {
+          p_asset_id: string
+          p_date?: string
+          p_department_id: number
+          p_reason?: string
+        }
+        Returns: undefined
+      }
+      change_asset_status: {
+        Args: {
+          p_asset_id: string
+          p_date?: string
+          p_reason: string
+          p_status: string
         }
         Returns: undefined
       }
@@ -1538,6 +1558,10 @@ export type Database = {
           p_reason?: string
           p_vendor_id?: number
         }
+        Returns: undefined
+      }
+      set_asset_accessories: {
+        Args: { p_accessory_type_ids: number[]; p_asset_id: string }
         Returns: undefined
       }
       submit_fault_report: {
