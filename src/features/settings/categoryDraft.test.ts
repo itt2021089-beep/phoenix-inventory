@@ -26,7 +26,6 @@ describe('category draft', () => {
       name: 'Air Conditioner',
       tag_prefix: 'ACU',
       service_interval_days: 90,
-      typical_replacement_cost: null,
       custom_fields: [
         { key: 'btu', label: 'BTU', type: 'number', required: false },
         {
@@ -38,18 +37,14 @@ describe('category draft', () => {
         },
       ],
     })
+    // Settings no longer edits the typical replacement cost, so saving leaves it as it is.
+    expect(row).not.toHaveProperty('typical_replacement_cost')
   })
 
-  it('uppercases the prefix and parses money with commas', () => {
-    const d = {
-      ...toDraft(null),
-      name: 'Tablet',
-      tag_prefix: 'tab',
-      typical_replacement_cost: '85,000',
-    }
+  it('uppercases the prefix', () => {
+    const d = { ...toDraft(null), name: 'Tablet', tag_prefix: 'tab' }
     const { row } = draftToRow(d)
     expect(row?.tag_prefix).toBe('TAB')
-    expect(row?.typical_replacement_cost).toBe(85000)
   })
 
   it('lists every problem at once', () => {

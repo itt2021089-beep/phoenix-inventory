@@ -85,7 +85,7 @@ export function DashboardPage() {
     (c) => (c.active_total ?? 0) > 0 || (c.min_spares ?? 0) > 0,
   )
   const grid = departmentGrid(data.departments)
-  const attention = attentionItems({ ...data, flaggedCount: data.flagged.length })
+  const attention = attentionItems(data)
   // A grouped reminder opens the folded list below and scrolls to it.
   const openDue = () => {
     if (!dueRef.current) return

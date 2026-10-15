@@ -8,7 +8,6 @@ export type Draft = {
   category_group: string
   tag_prefix: string
   min_spares: string
-  typical_replacement_cost: string
   service_interval_days: string
   fields: (CustomField & { optionsText: string; saved: boolean })[]
 }
@@ -19,8 +18,6 @@ export function toDraft(c: Category | null): Draft {
     category_group: c?.category_group ?? 'it',
     tag_prefix: c?.tag_prefix ?? '',
     min_spares: String(c?.min_spares ?? 0),
-    typical_replacement_cost:
-      c?.typical_replacement_cost == null ? '' : String(c.typical_replacement_cost),
     service_interval_days: c?.service_interval_days == null ? '' : String(c.service_interval_days),
     fields: customFieldsOf(c ?? undefined).map((f) => ({
       ...f,
@@ -44,9 +41,6 @@ export function draftToRow(d: Draft): { row?: Record<string, Json>; problems: st
   const min = nonNegInt(d.min_spares, 'Min spares', false)
   const interval = nonNegInt(d.service_interval_days, 'Service interval', true)
   if (interval === 0) problems.push('Service interval must be at least 1 day, or blank for none.')
-  const cost = d.typical_replacement_cost.replace(/,/g, '').trim()
-  if (cost !== '' && !/^\d+(\.\d{1,2})?$/.test(cost))
-    problems.push('Typical replacement cost is an amount like 150000.')
   const fields: CustomField[] = d.fields.map((f) => ({
     key: f.key,
     label: f.label.trim(),
@@ -63,7 +57,6 @@ export function draftToRow(d: Draft): { row?: Record<string, Json>; problems: st
       category_group: d.category_group,
       tag_prefix: prefix,
       min_spares: min,
-      typical_replacement_cost: cost === '' ? null : Number(cost),
       service_interval_days: interval,
       custom_fields: fields as unknown as Json,
     },
