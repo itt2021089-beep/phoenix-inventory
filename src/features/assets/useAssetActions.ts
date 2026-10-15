@@ -1,17 +1,24 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { dashboardKeys } from '@/features/dashboard/useDashboard'
+import { faultKeys } from '@/features/faults/api'
+import { peopleKeys } from '@/features/people/api'
 import { supabase } from '@/lib/supabase'
 
 import { assetKeys } from './api'
 import type { toAssetUpdate } from './assetForm'
 
-/** After any change to an asset, every list, the asset and the dashboard are refreshed. */
+/**
+ * After any change to an asset, every list, the asset and the dashboard are refreshed; so are
+ * people (retiring clears the holder) and faults (repair moves a fault along).
+ */
 function useInvalidateAssets() {
   const qc = useQueryClient()
   return () => {
     void qc.invalidateQueries({ queryKey: assetKeys.all })
     void qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    void qc.invalidateQueries({ queryKey: faultKeys.all })
+    void qc.invalidateQueries({ queryKey: peopleKeys.all })
   }
 }
 

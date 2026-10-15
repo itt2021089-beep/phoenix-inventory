@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -13,13 +13,14 @@ import { NativeSelect } from '@/components/ui/native-select'
 import { type AssetListRow, useAssetList } from '@/features/assets/api'
 import { activeOr, useAccessoryTypes, useLocations } from '@/features/lookups/useLookups'
 import { type PersonRow, usePeople } from '@/features/people/api'
+import { useStockList } from '@/features/stock/api'
 import { CONDITION_LABELS } from '@/lib/constants'
 import type { Condition } from '@/lib/db'
 import { errorMessage } from '@/lib/errors'
 import { todayInColombo } from '@/lib/format'
 
 import { AssetPicker } from './AssetPicker'
-import { type IssueLine, issueItems } from './handover'
+import { type IssueLine, issueItems, spareShortcuts, stockNeeded } from './handover'
 import { attachConditionPhotos } from '@/features/photos/api'
 import { PhotoPicker } from '@/features/photos/PhotoPicker'
 import { MAX_CONDITION_PHOTOS } from '@/lib/photos'
@@ -29,13 +30,51 @@ import { HandoverTabs } from './HandoverTabs'
 import { PersonPicker } from './PersonPicker'
 import { useIssue } from './useHandover'
 
-/** A picked asset starts with its current condition and the accessories already with it. */
-const lineFor = (a: AssetListRow): IssueLine => ({
-  assetId: a.id,
-  condition: a.condition as Condition,
-  accessoryTypeIds: a.asset_accessories.map((x) => x.accessory_type_id),
-  photos: [],
-})
+/**
+ * The accessories ticked last time for each category ("a laptop goes out with a charger and a
+ * mouse"), kept in this browser only. A convenience: if storage is blocked, nothing is ticked.
+ */
+const ACCESSORY_MEMORY = 'phoenix.issue.accessoriesByCategory'
+
+function rememberedAccessories(categoryId: number): number[] {
+  try {
+    const all = JSON.parse(localStorage.getItem(ACCESSORY_MEMORY) ?? '{}') as Record<
+      string,
+      unknown
+    >
+    const v = all[categoryId]
+    return Array.isArray(v) ? v.filter((x): x is number => Number.isInteger(x)) : []
+  } catch {
+    return []
+  }
+}
+
+function rememberAccessories(byCategory: Map<number, number[]>) {
+  try {
+    const all = JSON.parse(localStorage.getItem(ACCESSORY_MEMORY) ?? '{}') as Record<
+      string,
+      unknown
+    >
+    for (const [c, ids] of byCategory) all[c] = ids
+    localStorage.setItem(ACCESSORY_MEMORY, JSON.stringify(all))
+  } catch {
+    // Storage blocked (private window): nothing to remember.
+  }
+}
+
+/**
+ * A picked asset starts with its current condition and the accessories already with it, or, if
+ * it has none, the ones ticked last time for its category.
+ */
+const lineFor = (a: AssetListRow): IssueLine => {
+  const withIt = a.asset_accessories.map((x) => x.accessory_type_id)
+  return {
+    assetId: a.id,
+    condition: a.condition as Condition,
+    accessoryTypeIds: withIt.length ? withIt : rememberedAccessories(a.category_id),
+    photos: [],
+  }
+}
 
 export function IssuePage() {
   const [params] = useSearchParams()
@@ -59,6 +98,7 @@ export function IssuePage() {
       assets={assets.data}
       startEmployeeId={params.get('employee')}
       startAssetTag={params.get('asset')}
+      newJoiner={params.get('joiner') === '1'}
     />
   )
 }
@@ -68,14 +108,18 @@ function IssueForm({
   assets,
   startEmployeeId,
   startAssetTag,
+  newJoiner,
 }: {
   people: PersonRow[]
   assets: AssetListRow[]
   startEmployeeId: string | null
   startAssetTag: string | null
+  /** Arrived from "Save and issue devices" on a new person. */
+  newJoiner: boolean
 }) {
   const locations = useLocations()
   const accessoryTypes = useAccessoryTypes()
+  const stock = useStockList()
   const issue = useIssue()
 
   const activePeople = people.filter((p) => p.status === 'active')
@@ -92,8 +136,9 @@ function IssueForm({
     startPerson?.default_location_id ? String(startPerson.default_location_id) : '',
   )
   const [date, setDate] = useState(todayInColombo())
-  const [reason, setReason] = useState('')
+  const [reason, setReason] = useState(newJoiner ? 'New joiner' : '')
   const [makeForm, setMakeForm] = useState(true)
+  const [showAllKinds, setShowAllKinds] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState<{
     formNo: string | null
@@ -111,6 +156,33 @@ function IssueForm({
   const setLine = (i: number, patch: Partial<IssueLine>) =>
     setLines(lines.map((l, j) => (j === i ? { ...l, ...patch } : l)))
 
+  // Stock: how many each stock-linked accessory has left, and whether this issue needs more.
+  const stockItemOf = (typeId: number) =>
+    accessoryTypes.data?.find((t) => t.id === typeId)?.stock_item_id ?? null
+  const stockById = new Map((stock.data ?? []).map((s) => [s.id, s]))
+  const need = stockNeeded(
+    lines.map((l) => ({
+      accessoryTypeIds: l.accessoryTypeIds,
+      alreadyWith: byId.get(l.assetId)?.asset_accessories.map((x) => x.accessory_type_id) ?? [],
+    })),
+    stockItemOf,
+  )
+  const shortages = [...need]
+    .map(([id, n]) => ({ item: stockById.get(id), n }))
+    .filter((x) => x.item && x.n > x.item.qty_on_hand)
+  const issuedCount = new Map<number, number>()
+  for (const a of assets)
+    if (a.status === 'in_use' && a.assigned_employee_id)
+      issuedCount.set(a.category_id, (issuedCount.get(a.category_id) ?? 0) + 1)
+  const shortcuts = spareShortcuts(
+    spares,
+    lines.map((l) => l.assetId),
+    issuedCount,
+  )
+  const shownShortcuts = showAllKinds
+    ? shortcuts
+    : shortcuts.filter((s) => !s.rarelyIssued || shortcuts.every((x) => x.rarelyIssued))
+
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!person || !lines.length) return
@@ -125,6 +197,12 @@ function IssueForm({
       },
       {
         onSuccess: async (formNo) => {
+          const byCategory = new Map<number, number[]>()
+          for (const l of lines) {
+            const c = byId.get(l.assetId)?.category_id
+            if (c !== undefined) byCategory.set(c, l.accessoryTypeIds)
+          }
+          rememberAccessories(byCategory)
           // The issue is saved; the condition photos go up next, against its Change Log rows.
           setUploading(lines.some((l) => l.photos.length))
           const photoProblem = await attachConditionPhotos(
@@ -197,6 +275,33 @@ function IssueForm({
               pickedIds={lines.map((l) => l.assetId)}
               onPick={(a) => setLines([...lines, lineFor(a)])}
             />
+            {shortcuts.length > 0 && (
+              <div className="flex flex-wrap gap-2" aria-label="Add the next spare of a kind">
+                {shownShortcuts.map((s) => (
+                  <Button
+                    key={s.name}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLines([...lines, lineFor(s.next)])}
+                  >
+                    <Plus aria-hidden />
+                    {s.name}
+                    <span className="text-muted-foreground">({s.count} spare)</span>
+                  </Button>
+                ))}
+                {shownShortcuts.length < shortcuts.length && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllKinds(true)}
+                  >
+                    Other kinds ({shortcuts.length - shownShortcuts.length})
+                  </Button>
+                )}
+              </div>
+            )}
             {lines.map((l, i) => {
               const a = byId.get(l.assetId)
               return (
@@ -249,6 +354,17 @@ function IssueForm({
                             }
                           />
                           {t.name}
+                          {t.stock_item_id != null && stockById.get(t.stock_item_id) && (
+                            <span
+                              className={
+                                stockById.get(t.stock_item_id)!.qty_on_hand === 0
+                                  ? 'text-red-700 dark:text-red-400'
+                                  : 'text-muted-foreground'
+                              }
+                            >
+                              ({stockById.get(t.stock_item_id)!.qty_on_hand} left)
+                            </span>
+                          )}
                         </label>
                       ))}
                     </div>
@@ -322,6 +438,16 @@ function IssueForm({
           </CardContent>
         </Card>
 
+        {shortages.length > 0 && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              {shortages
+                .map((x) => `${x.item!.name}: ${x.n} needed, ${x.item!.qty_on_hand} in stock.`)
+                .join(' ')}{' '}
+              Untick it on some items, or receive stock first.
+            </AlertDescription>
+          </Alert>
+        )}
         {issue.error && (
           <Alert variant="destructive">
             <AlertDescription>{errorMessage(issue.error)}</AlertDescription>
@@ -330,7 +456,14 @@ function IssueForm({
         <Button
           type="submit"
           size="lg"
-          disabled={!person || !lines.length || !date || issue.isPending || uploading}
+          disabled={
+            !person ||
+            !lines.length ||
+            !date ||
+            shortages.length > 0 ||
+            issue.isPending ||
+            uploading
+          }
         >
           {uploading
             ? 'Saving photos...'

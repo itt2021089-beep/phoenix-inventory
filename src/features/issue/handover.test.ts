@@ -6,6 +6,8 @@ import {
   overallReturnCondition,
   type ReturnLine,
   returnItems,
+  spareShortcuts,
+  stockNeeded,
 } from './handover'
 
 const line = (over: Partial<ReturnLine>): ReturnLine => ({
@@ -74,5 +76,65 @@ describe('missingSummary', () => {
         () => '',
       ),
     ).toBe('')
+  })
+})
+
+describe('spareShortcuts', () => {
+  const spare = (tag: string, categoryId: number, name: string) => ({
+    id: tag,
+    asset_tag: tag,
+    category_id: categoryId,
+    category: { name },
+  })
+  const spares = [
+    spare('PBS-LAP-010', 1, 'Laptop'),
+    spare('PBS-LAP-009', 1, 'Laptop'),
+    spare('PBS-HST-002', 2, 'Headset'),
+  ]
+
+  it('offers one per category, the lowest tag first, with how many are spare', () => {
+    expect(spareShortcuts(spares, []).map((s) => [s.name, s.next.asset_tag, s.count])).toEqual([
+      ['Headset', 'PBS-HST-002', 1],
+      ['Laptop', 'PBS-LAP-009', 2],
+    ])
+  })
+
+  it('skips what is already picked, and drops a category with none left', () => {
+    expect(
+      spareShortcuts(spares, ['PBS-LAP-009', 'PBS-HST-002']).map((s) => [s.name, s.next.asset_tag]),
+    ).toEqual([['Laptop', 'PBS-LAP-010']])
+  })
+
+  it('puts the kinds people hold first and marks the ones nobody holds', () => {
+    const s = spareShortcuts(
+      [...spares, spare('PBS-ACU-001', 3, 'Air Conditioner')],
+      [],
+      new Map([
+        [1, 9],
+        [2, 10],
+      ]),
+    )
+    expect(s.map((x) => [x.name, x.rarelyIssued])).toEqual([
+      ['Headset', false],
+      ['Laptop', false],
+      ['Air Conditioner', true],
+    ])
+  })
+})
+
+describe('stockNeeded', () => {
+  // Accessory 2 (Mouse) is linked to stock item 7; 1 (Charger) is not linked.
+  const stockItemOf = (t: number) => (t === 2 ? 7 : null)
+
+  it('counts linked accessories that are newly handed over', () => {
+    const need = stockNeeded(
+      [
+        { accessoryTypeIds: [1, 2], alreadyWith: [] },
+        { accessoryTypeIds: [2], alreadyWith: [] },
+        { accessoryTypeIds: [2], alreadyWith: [2] },
+      ],
+      stockItemOf,
+    )
+    expect([...need]).toEqual([[7, 2]])
   })
 })

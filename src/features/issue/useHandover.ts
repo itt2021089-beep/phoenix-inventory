@@ -2,17 +2,26 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { assetKeys } from '@/features/assets/api'
 import { dashboardKeys } from '@/features/dashboard/useDashboard'
+import { faultKeys } from '@/features/faults/api'
+import { lookupKeys } from '@/features/lookups/useLookups'
 import { peopleKeys } from '@/features/people/api'
+import { stockKeys } from '@/features/stock/api'
 import type { Json } from '@/lib/database.types'
 import { supabase } from '@/lib/supabase'
 
-/** Every hand-over changes assets, people's holdings and the dashboard. */
+/**
+ * Every hand-over changes assets, people's holdings and the dashboard. A ticked accessory also
+ * moves stock, and a return can open a fault, so those lists are refreshed too.
+ */
 function useRefreshAll() {
   const qc = useQueryClient()
   return () => {
     void qc.invalidateQueries({ queryKey: assetKeys.all })
     void qc.invalidateQueries({ queryKey: peopleKeys.all })
     void qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    void qc.invalidateQueries({ queryKey: faultKeys.all })
+    void qc.invalidateQueries({ queryKey: stockKeys.all })
+    void qc.invalidateQueries({ queryKey: lookupKeys.stockItems })
   }
 }
 

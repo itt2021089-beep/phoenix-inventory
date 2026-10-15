@@ -8,6 +8,7 @@ import {
   assetRegisterRow,
   EMPTY_FILTERS,
   filterAssets,
+  groupAssets,
   notesColumn,
 } from './filters'
 
@@ -127,5 +128,63 @@ describe('the Asset Register export', () => {
     expect(ws.getRow(1).font?.bold).toBe(true)
     expect(ws.getCell('A2').value).toBe('PBS-LAP-001')
     expect(ws.rowCount).toBe(4)
+  })
+})
+
+describe('groupAssets', () => {
+  const rows = [
+    asset({ asset_tag: 'PBS-LAP-003' }),
+    asset({
+      asset_tag: 'PBS-HST-002',
+      category_id: 4,
+      category: { name: 'Headset', tag_prefix: 'HST' },
+    }),
+    asset({
+      asset_tag: 'PBS-LAP-004',
+      assigned_employee_id: 'e2',
+      employee: { full_name: 'Another Person', nid: '199900000017' },
+      department_id: 2,
+      department: { name: 'Sales' },
+    }),
+    asset({
+      asset_tag: 'PBS-LAP-005',
+      status: 'spare',
+      assigned_employee_id: null,
+      employee: null,
+      department_id: null,
+      department: null,
+      location_id: null,
+      location: null,
+    }),
+  ]
+
+  it('gives no groups for the plain list', () => {
+    expect(groupAssets(rows, '')).toEqual([])
+  })
+
+  it('groups by department, alphabetically, with Common last and a summary of each', () => {
+    const g = groupAssets(rows, 'department')
+    expect(g.map((x) => [x.label, x.rows.length, x.summary])).toEqual([
+      ['Sales', 1, '1 Laptop'],
+      ['Travel', 2, '1 Headset · 1 Laptop'],
+      ['Common', 1, '1 Laptop'],
+    ])
+  })
+
+  it('groups by person with a link id, and puts what nobody holds last', () => {
+    const g = groupAssets(rows, 'person')
+    expect(g.map((x) => [x.label, x.personId, x.rows.map((r) => r.asset_tag)])).toEqual([
+      ['Another Person', 'e2', ['PBS-LAP-004']],
+      ['Test Person One', 'e1', ['PBS-HST-002', 'PBS-LAP-003']],
+      ['Not with anyone', undefined, ['PBS-LAP-005']],
+    ])
+  })
+
+  it('summarises a category by status, and orders statuses the usual way', () => {
+    expect(groupAssets(rows, 'category').find((x) => x.label === 'Laptop')?.summary).toBe(
+      '2 In Use · 1 Spare',
+    )
+    expect(groupAssets(rows, 'status').map((x) => x.label)).toEqual(['In Use', 'Spare'])
+    expect(groupAssets(rows, 'location').at(-1)?.label).toBe('No location')
   })
 })

@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { type CostRow, dueLabel, flagReason, sortDue, sortFlagged } from './panels'
+import {
+  type AttentionInput,
+  attentionItems,
+  type CostRow,
+  type DueRow,
+  dueLabel,
+  flagReason,
+  sortDue,
+  sortFlagged,
+} from './panels'
 
 describe('dueLabel', () => {
   it('says what is coming, in words', () => {
@@ -63,5 +72,77 @@ describe('flagReason', () => {
         6,
       ),
     ).toBe('Repairs are 80% of its typical replacement cost; 4 faults in 6 months')
+  })
+})
+
+describe('attentionItems', () => {
+  const due = (tag: string, kind: string, daysLeft: number, category = 'Laptop'): DueRow =>
+    ({
+      asset_id: tag,
+      asset_tag: tag,
+      category,
+      kind,
+      days_left: daysLeft,
+      overdue: daysLeft < 0,
+      due_date: '2026-11-02',
+    }) as DueRow
+  const empty: AttentionInput = {
+    totals: null,
+    due: [],
+    categories: [],
+    stockToReorder: [],
+    openFaults: [],
+    flaggedCount: 0,
+  }
+
+  it('is empty when nothing needs doing', () => {
+    expect(attentionItems(empty)).toEqual([])
+  })
+
+  it('groups alike reminders into one line, and keeps a single one by its tag', () => {
+    const items = attentionItems({
+      ...empty,
+      due: [
+        due('PBS-LAP-001', 'warranty', 18),
+        due('PBS-LAP-002', 'warranty', 18),
+        due('PBS-LAP-003', 'warranty', 18),
+        due('PBS-ACU-001', 'service', -5, 'Air Conditioner'),
+      ],
+    })
+    expect(items.map((i) => i.text)).toEqual([
+      'PBS-ACU-001: Service overdue by 5 days (02/11/2026)',
+      '3 Laptop warranties end in 18 days (02/11/2026)',
+    ])
+    expect(items[0]).toMatchObject({ tone: 'danger', to: '/assets/PBS-ACU-001' })
+    expect(items[1]).toMatchObject({ tone: 'warn', to: '#due-soon' })
+  })
+
+  it('says how many faults are open, new from QR and with a vendor, and puts red first', () => {
+    const items = attentionItems({
+      ...empty,
+      totals: { open_faults: 3, open_qr_faults: 1, in_use_without_holder: 0 },
+      openFaults: [{ status: 'open' }, { status: 'with_vendor' }, { status: 'open' }],
+      stockToReorder: [
+        {
+          stock_item_id: 1,
+          item_code: 'CON-001',
+          name: 'Optical mouse',
+          qty_on_hand: 6,
+          reorder_level: 10,
+        },
+      ],
+      categories: [
+        { category: 'Laptop', category_id: 1, spare: 0, min_spares: 2, below_min: true },
+        { category: 'Headset', category_id: 2, spare: 5, min_spares: 2, below_min: false },
+      ],
+      flaggedCount: 2,
+    })
+    expect(items.map((i) => [i.tone, i.text])).toEqual([
+      ['danger', '3 open faults (1 new from QR, 1 with vendor)'],
+      ['danger', 'Laptop spares: 0 left, minimum 2'],
+      ['warn', 'Optical mouse: 6 left, reorder at 10'],
+      ['warn', '2 assets may be cheaper to replace than to repair'],
+    ])
+    expect(items[1].to).toBe('/assets?category=1&status=spare')
   })
 })

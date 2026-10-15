@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router'
 
 import { AppLayout } from '@/components/AppLayout'
+import { MorePage } from '@/components/MorePage'
 import { AddAssetPage } from '@/features/assets/AddAssetPage'
 import { AssetPage } from '@/features/assets/AssetPage'
 import { AssetsListPage } from '@/features/assets/AssetsListPage'
@@ -68,6 +69,7 @@ export default function App() {
               <Route path="a/:tag" element={<ScanToAsset />} />
               <Route element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
+                <Route path="more" element={<MorePage />} />
                 <Route path="assets" element={<AssetsListPage />} />
                 <Route path="assets/:tag" element={<AssetPage />} />
                 {/* Viewers can open Settings and see the lists; the edit controls are admin-only. */}

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { dashboardKeys } from '@/features/dashboard/useDashboard'
 import { faultKeys } from '@/features/faults/api'
+import { peopleKeys } from '@/features/people/api'
 import { CONDITION_LABELS, labelOf } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
 import { todayInColombo } from '@/lib/format'
@@ -42,6 +43,7 @@ function useSwap() {
       void qc.invalidateQueries({ queryKey: assetKeys.all })
       void qc.invalidateQueries({ queryKey: faultKeys.all })
       void qc.invalidateQueries({ queryKey: dashboardKeys.all })
+      void qc.invalidateQueries({ queryKey: peopleKeys.all })
     },
   })
 }
