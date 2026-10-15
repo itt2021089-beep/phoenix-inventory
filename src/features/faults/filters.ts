@@ -1,4 +1,4 @@
-import { FAULT_CAUSE_LABELS, FAULT_STATUS_LABELS, labelOf } from '@/lib/constants'
+import { FAULT_STATUS_LABELS, labelOf } from '@/lib/constants'
 import { formatDate } from '@/lib/format'
 
 import { type FaultRow, reporterName } from './api'
@@ -88,8 +88,6 @@ export const FAULT_COLUMNS = [
   'Remarks',
   'Vendor',
   'Under Warranty',
-  'Cause',
-  'Responsible',
 ] as const
 
 export function faultRow(f: FaultRow): (string | number)[] {
@@ -106,8 +104,6 @@ export function faultRow(f: FaultRow): (string | number)[] {
     f.remarks ?? '',
     f.vendor?.name ?? '',
     f.under_warranty ? 'Yes' : 'No',
-    f.cause ? labelOf(FAULT_CAUSE_LABELS, f.cause) : '',
-    f.responsible?.full_name ?? '',
   ]
 }
 

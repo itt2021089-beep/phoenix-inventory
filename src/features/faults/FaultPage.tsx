@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
-import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/features/auth/useAuth'
 import { SwapPanel } from '@/features/assets/SwapPanel'
 import { useAssetList } from '@/features/assets/api'
@@ -20,7 +19,7 @@ import { PhotoGallery } from '@/features/photos/PhotoGallery'
 import { PhotoUpload } from '@/features/photos/PhotoUpload'
 import { usePeople } from '@/features/people/api'
 import { activeOr, useVendors } from '@/features/lookups/useLookups'
-import { CONDITION_LABELS, FAULT_CAUSE_LABELS, FAULT_STATUS_LABELS, labelOf } from '@/lib/constants'
+import { CONDITION_LABELS, FAULT_STATUS_LABELS, labelOf } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
 import { formatDate, formatDateTime, formatMoney, todayInColombo } from '@/lib/format'
 
@@ -30,7 +29,6 @@ import {
   useBackFromRepair,
   useFault,
   useMatchReporter,
-  useSaveFinding,
   useSendForRepair,
   useUpdateFault,
 } from './api'
@@ -55,7 +53,7 @@ export function FaultPage() {
   const f = fault.data
   // Which form was just saved. It lives here because saving refreshes the fault, which rebuilds
   // the forms, and a "Saved." kept inside a form would vanish with it.
-  const [saved, setSaved] = useState<'repair' | 'finding' | null>(null)
+  const [saved, setSaved] = useState<'repair' | null>(null)
 
   if (!f) {
     return (
@@ -152,17 +150,6 @@ export function FaultPage() {
       )}
 
       <FaultPhotos fault={f} isAdmin={isAdmin} />
-
-      {isAdmin ? (
-        <Investigation
-          key={`inv-${f.id}-${f.updated_at}`}
-          fault={f}
-          saved={saved === 'finding'}
-          setSaved={(v) => setSaved(v ? 'finding' : null)}
-        />
-      ) : (
-        <FindingReadOnly fault={f} />
-      )}
     </div>
   )
 }
@@ -480,131 +467,6 @@ function RepairActions({ fault: f }: { fault: FaultRow }) {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
-  )
-}
-
-/** Sahan's finding after checking. Three separate facts: who told us, who held it, and this. */
-function Investigation({
-  fault: f,
-  saved,
-  setSaved,
-}: {
-  fault: FaultRow
-  saved: boolean
-  setSaved: (saved: boolean) => void
-}) {
-  const people = usePeople()
-  const save = useSaveFinding()
-  const [cause, setCause] = useState(f.cause ?? '')
-  const [responsible, setResponsible] = useState(f.responsible_employee_id ?? '')
-  const [notes, setNotes] = useState(f.finding_notes ?? '')
-  // Active people, plus anyone already named (they may have left since).
-  const choices = (people.data ?? []).filter(
-    (p) => p.status === 'active' || p.id === f.responsible_employee_id,
-  )
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Investigation</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form
-          className="grid gap-4 sm:grid-cols-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            setSaved(false)
-            save.mutate(
-              {
-                id: f.id,
-                cause: cause || null,
-                responsible_employee_id: responsible || null,
-                finding_notes: notes.trim() || null,
-              },
-              { onSuccess: () => setSaved(true) },
-            )
-          }}
-        >
-          <Field label="Cause" htmlFor="finding-cause">
-            <NativeSelect
-              id="finding-cause"
-              value={cause}
-              onChange={(e) => setCause(e.target.value)}
-            >
-              <option value="">Not decided</option>
-              {Object.entries(FAULT_CAUSE_LABELS).map(([code, label]) => (
-                <option key={code} value={code}>
-                  {label}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field
-            label="Responsible"
-            htmlFor="finding-person"
-            hint={
-              f.holder
-                ? `It was held by ${f.holder.full_name}; that is recorded separately.`
-                : undefined
-            }
-          >
-            <NativeSelect
-              id="finding-person"
-              value={responsible}
-              onChange={(e) => setResponsible(e.target.value)}
-            >
-              <option value="">Nobody / not decided</option>
-              {choices.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.full_name}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field label="Notes" htmlFor="finding-notes" className="sm:col-span-2">
-            <Textarea
-              id="finding-notes"
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </Field>
-          {save.error && (
-            <Alert variant="destructive" className="sm:col-span-2">
-              <AlertDescription>{errorMessage(save.error)}</AlertDescription>
-            </Alert>
-          )}
-          <div className="flex items-center gap-3 sm:col-span-2">
-            <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? 'Saving...' : 'Save finding'}
-            </Button>
-            {saved && !save.isPending && (
-              <span role="status" className="text-sm text-muted-foreground">
-                Saved.
-              </span>
-            )}
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
-
-function FindingReadOnly({ fault: f }: { fault: FaultRow }) {
-  if (!f.cause && !f.responsible && !f.finding_notes) return null
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Investigation</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
-          <Detail label="Cause">{f.cause ? labelOf(FAULT_CAUSE_LABELS, f.cause) : ''}</Detail>
-          <Detail label="Responsible">{f.responsible?.full_name}</Detail>
-          <Detail label="Notes">{f.finding_notes}</Detail>
-        </dl>
       </CardContent>
     </Card>
   )
