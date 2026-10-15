@@ -46,9 +46,11 @@ export type AssetListRow = {
   asset_accessories: { accessory_type_id: number; accessory_types: { name: string } | null }[]
 }
 
-export function useAssetList() {
+/** Every asset for the lists and pickers. `enabled: false` waits until the screen needs it. */
+export function useAssetList({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: assetKeys.list,
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('assets')

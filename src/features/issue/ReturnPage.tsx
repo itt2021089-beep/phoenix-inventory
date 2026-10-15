@@ -380,7 +380,11 @@ function ReturnForm({
                             label="What's wrong"
                             htmlFor={`fd-${h.id}`}
                             className="sm:col-span-2"
-                            hint="Opens a fault (FLT-) on this asset, with the person returning it as the reporter."
+                            hint={
+                              l.faultDescription.trim()
+                                ? 'Opens a fault (FLT-) on this asset, with the person returning it as the reporter.'
+                                : 'Left blank, no fault is logged. Fill it in unless a fault is already open for this item.'
+                            }
                           >
                             <Input
                               id={`fd-${h.id}`}

@@ -14,7 +14,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 
 import { ActionMenu } from '@/components/ActionMenu'
 import { PageHeader } from '@/components/PageHeader'
@@ -54,7 +54,9 @@ export function AssetPage() {
   const asset = useAsset(tag)
   const timeline = useTimeline(asset.data?.id)
   const categories = useCategories()
-  const [panel, setPanel] = useState<Panel>(null)
+  const [params] = useSearchParams()
+  // ?fault=1 (from Log a fault on the Faults page) opens the fault form straight away.
+  const [panel, setPanel] = useState<Panel>(params.get('fault') === '1' ? 'fault' : null)
 
   const a = asset.data
   if (!a) {

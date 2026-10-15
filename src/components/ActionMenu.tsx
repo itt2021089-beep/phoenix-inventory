@@ -23,7 +23,16 @@ export function ActionMenu({
   items: ActionMenuItem[]
 }) {
   const [open, setOpen] = useState(false)
+  // Which edge of the button the list lines up with, so it never opens off the screen.
+  const [alignRight, setAlignRight] = useState(false)
   const root = useRef<HTMLDivElement>(null)
+
+  function toggle() {
+    const box = root.current?.getBoundingClientRect()
+    // The list is about 14rem wide: line it up with the button's left edge if that fits.
+    if (box) setAlignRight(box.left + 224 > window.innerWidth)
+    setOpen((o) => !o)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -47,19 +56,17 @@ export function ActionMenu({
 
   return (
     <div ref={root} className="relative">
-      <Button
-        variant="outline"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
+      <Button variant="outline" aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
         {label}
         <ChevronDown className={cn('transition-transform', open && 'rotate-180')} aria-hidden />
       </Button>
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-1 min-w-52 rounded-md border bg-popover p-1 shadow-md sm:left-0 sm:right-auto"
+          className={cn(
+            'absolute z-20 mt-1 min-w-52 rounded-md border bg-popover p-1 shadow-md',
+            alignRight ? 'right-0' : 'left-0',
+          )}
         >
           {shown.map((it, i) => {
             if (it === 'separator') return <div key={`sep-${i}`} className="my-1 border-t" />

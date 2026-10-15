@@ -1,10 +1,11 @@
-import { Download, QrCode } from 'lucide-react'
+import { Download, Plus, QrCode } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { PageHeader } from '@/components/PageHeader'
 import { QueryState } from '@/components/QueryState'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import {
@@ -15,7 +16,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useAssetList } from '@/features/assets/api'
+import { useAuth } from '@/features/auth/useAuth'
+import { AssetPicker } from '@/features/issue/AssetPicker'
 import { useCategories } from '@/features/lookups/useLookups'
+import { ACTIVE_STATUSES } from '@/lib/constants'
 import { FAULT_STATUS_LABELS } from '@/lib/constants'
 import { downloadWorkbook, exportFileName } from '@/lib/excel'
 import { formatDate, formatMoney, todayInColombo } from '@/lib/format'
@@ -33,11 +38,19 @@ function QrBadge() {
   )
 }
 
-/** The fault inbox: everything not Closed, newest first. Faults are opened from Return, the asset page or (Phase 3) a QR scan. */
+/**
+ * The fault inbox: everything not Closed, newest first. Faults are opened here (Log a fault: pick
+ * the asset, then its fault form), from Return, from the asset page or by a QR scan.
+ */
 export function FaultsListPage() {
   const navigate = useNavigate()
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState('')
+  const [logging, setLogging] = useState(false)
+  // Only loaded once "Log a fault" is pressed.
+  const assets = useAssetList({ enabled: logging })
   const filters = {
     q,
     status: params.get('status') ?? EMPTY_FAULT_FILTERS.status,
@@ -65,19 +78,48 @@ export function FaultsListPage() {
             : undefined
         }
         actions={
-          <Button
-            variant="outline"
-            disabled={!rows.length}
-            onClick={() =>
-              void downloadWorkbook(exportFileName('Faults_Phoenix_BPO', todayInColombo()), [
-                { name: 'Fault Log', columns: FAULT_COLUMNS, rows: rows.map(faultRow) },
-              ])
-            }
-          >
-            <Download /> Export to Excel
-          </Button>
+          <>
+            {isAdmin && (
+              <Button onClick={() => setLogging((v) => !v)} aria-expanded={logging}>
+                <Plus /> Log a fault
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              disabled={!rows.length}
+              onClick={() =>
+                void downloadWorkbook(exportFileName('Faults_Phoenix_BPO', todayInColombo()), [
+                  { name: 'Fault Log', columns: FAULT_COLUMNS, rows: rows.map(faultRow) },
+                ])
+              }
+            >
+              <Download /> Export to Excel
+            </Button>
+          </>
         }
       />
+      {logging && (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>Which item has the fault?</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <QueryState isLoading={assets.isLoading} error={assets.error} />
+            {assets.data && (
+              <AssetPicker
+                id="fault-asset"
+                kind="active"
+                assets={assets.data.filter((a) => ACTIVE_STATUSES.includes(a.status as never))}
+                pickedIds={[]}
+                onPick={(a) => navigate(`/assets/${a.asset_tag}?fault=1`)}
+              />
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              Type or scan the tag; its fault form opens next.
+            </p>
+          </CardContent>
+        </Card>
+      )}
       <div className="mb-4 grid gap-2 sm:grid-cols-3">
         <Input
           type="search"

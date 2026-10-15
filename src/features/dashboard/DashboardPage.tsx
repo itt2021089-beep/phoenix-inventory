@@ -150,7 +150,7 @@ export function DashboardPage() {
         <Stat label="Active (not retired)" value={t?.active_total ?? 0} to="/assets" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Spare pool by category</CardTitle>

@@ -9,11 +9,14 @@ export function AssetPicker({
   assets,
   pickedIds,
   onPick,
+  kind = 'Spare',
 }: {
   id: string
   assets: AssetListRow[]
   pickedIds: string[]
   onPick: (a: AssetListRow) => void
+  /** What the list holds, for the wording: 'Spare' on Issue, 'active' elsewhere. */
+  kind?: string
 }) {
   const [q, setQ] = useState('')
   const words = q.toLowerCase().split(/\s+/).filter(Boolean)
@@ -34,8 +37,8 @@ export function AssetPicker({
       <Input
         id={id}
         type="search"
-        aria-label="Find a Spare asset"
-        placeholder={`Tag, serial or model (${available.length} Spare)...`}
+        aria-label={`Find ${/^[aeiou]/i.test(kind) ? 'an' : 'a'} ${kind} asset`}
+        placeholder={`Tag, serial or model (${available.length} ${kind})...`}
         autoComplete="off"
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -56,9 +59,9 @@ export function AssetPicker({
         }}
       />
       {q && (
-        <ul className="grid gap-1" aria-label="Matching Spare assets">
+        <ul className="grid gap-1" aria-label={`Matching ${kind} assets`}>
           {matches.length === 0 && (
-            <li className="px-1 text-sm text-muted-foreground">No Spare asset matches.</li>
+            <li className="px-1 text-sm text-muted-foreground">No {kind} asset matches.</li>
           )}
           {matches.map((a) => (
             <li key={a.id}>
