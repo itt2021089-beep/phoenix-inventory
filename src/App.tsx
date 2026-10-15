@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router'
 
 import { AppLayout } from '@/components/AppLayout'
 import { MorePage } from '@/components/MorePage'
+import { NotFoundPage } from '@/components/NotFoundPage'
 import { AddAssetPage } from '@/features/assets/AddAssetPage'
 import { AssetPage } from '@/features/assets/AssetPage'
 import { AssetsListPage } from '@/features/assets/AssetsListPage'
@@ -13,7 +14,6 @@ import { NoAccessPage } from '@/features/auth/NoAccessPage'
 import { RequireAdmin } from '@/features/auth/RequireAdmin'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
-import { PlaceholderPage } from '@/features/dashboard/PlaceholderPage'
 import { FaultPage } from '@/features/faults/FaultPage'
 import { FaultsListPage } from '@/features/faults/FaultsListPage'
 import { IssuePage } from '@/features/issue/IssuePage'
@@ -96,10 +96,7 @@ export default function App() {
                 <Route path="stock" element={<StockListPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="stock/:code" element={<StockItemPage />} />
-                <Route
-                  path="*"
-                  element={<PlaceholderPage title="Page not found" phase="a later phase" />}
-                />
+                <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Route>
           </Routes>
