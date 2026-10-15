@@ -202,6 +202,20 @@ begin
     '%permission denied%', 'admin opens faults from the asset page, not this');
   reset role;
 
+  -- Uploads to reports/ are capped per hour, like the reports themselves (audit M2). The
+  -- setting was deleted above (testing the fallback), so it is put back at 2.
+  insert into settings (key, value) values ('report_rate_limit_total', '2')
+    on conflict (key) do update set value = excluded.value;
+  delete from storage.objects;
+  perform pg_temp.act_as(null);
+  insert into storage.objects (bucket_id, name) values ('photos', 'reports/11111111-2222-4333-8444-555555555551.jpg');
+  insert into storage.objects (bucket_id, name) values ('photos', 'reports/11111111-2222-4333-8444-555555555552.jpg');
+  perform pg_temp.expect_error($q$insert into storage.objects (bucket_id, name) values ('photos', 'reports/11111111-2222-4333-8444-555555555553.jpg')$q$,
+    '%row-level security%', 'the upload after the hourly cap is refused');
+  reset role;
+  perform pg_temp.check(not exists (select 1 from information_schema.routines where routine_schema = 'public' and routine_name = 'report_upload_allowed'),
+    'the cap check is not in public, so the API does not publish it');
+
   raise notice 'Public report: all checks passed.';
 end;
 $$;

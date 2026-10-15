@@ -91,12 +91,36 @@ begin
     '%Say why%', 'a status change needs a reason');
   perform change_asset_status(l1, 'lost_stolen', 'Left in a taxi');
   select * into r from assets where id = l1;
-  perform pg_temp.check(r.status = 'lost_stolen' and r.assigned_employee_id = e1,
-    'Lost / Stolen keeps who had it');
+  perform pg_temp.check(r.status = 'lost_stolen' and r.assigned_employee_id is null,
+    'nobody holds a Lost / Stolen item (audit M1)');
+  perform pg_temp.check((select from_employee_id from change_log where asset_id = l1 order by id desc limit 1) = e1,
+    'the Change Log keeps who had it');
   perform pg_temp.check((select from_text || '>' || to_text from change_log where asset_id = l1 order by id desc limit 1) = 'In Use>Lost / Stolen',
     'the Change Log shows the labels, not the codes');
   perform pg_temp.expect_error(format('select change_asset_status(%L, %L, %L)', l2, 'spare', 'x'),
     '%use Return%', 'taking an item back from someone stays with Return');
+  perform pg_temp.expect_error(format('select change_asset_status(%L, %L, %L)', l2, 'faulty', 'x'),
+    '%use Return%', 'a held item cannot be made Faulty here (audit H2): Return does that');
+  perform pg_temp.expect_error(format('select change_asset_status(%L, %L, %L)', l2, 'under_repair', 'x'),
+    '%use Return%', 'nor Under Repair');
+  perform pg_temp.expect_error(format('select send_for_repair(%L)', l2),
+    '%Return it first%', 'send for repair refuses an item someone holds');
+
+  -- An item that reached Under Repair with a holder before the fix comes back Spare cleanly.
+  reset role;
+  perform set_config('app.via_rpc', 'on', true);
+  update assets set status = 'under_repair' where id = l2;
+  perform set_config('app.via_rpc', '', true);
+  perform pg_temp.act_as(admin_id);
+  perform back_from_repair(l2, 'good', 'spare');
+  select * into r from assets where id = l2;
+  perform pg_temp.check(r.status = 'spare' and r.assigned_employee_id is null and r.department_id is null,
+    'back from repair as Spare clears the holder instead of failing (audit H2)');
+
+  -- With the lost item cleared and the other one back as Spare, the person can leave (audit M1).
+  update employees set status = 'left', left_on = (now() at time zone 'Asia/Colombo')::date where id = e1;
+  perform pg_temp.check((select status from employees where id = e1) = 'left',
+    'someone whose item was lost can be marked Left');
   perform pg_temp.expect_error(format('select change_asset_status(%L, %L, %L)', l3, 'retired', 'x'),
     '%Retire or Dispose%', 'Retired and Disposed keep their own actions');
 
