@@ -72,16 +72,6 @@ export function attentionItems(d: AttentionInput): AttentionItem[] {
   const items: AttentionItem[] = []
   const t = d.totals
 
-  if ((t?.in_use_without_holder ?? 0) > 0) {
-    const n = t!.in_use_without_holder!
-    items.push({
-      key: 'no-holder',
-      tone: 'danger',
-      text: `${n} In Use ${plural(n, 'asset has', 'assets have')} no person and no location: use Move to say where`,
-      to: '/assets?status=in_use',
-    })
-  }
-
   const open = d.openFaults.length || (t?.open_faults ?? 0)
   if (open > 0) {
     const qr = t?.open_qr_faults ?? 0

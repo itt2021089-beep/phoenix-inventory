@@ -18,10 +18,10 @@ You can **look at everything and print reports**. You cannot change anything: on
 The left menu (on a phone: the bar at the bottom, and **More** for the rest) is in groups: **Daily work** (Faults, Service jobs), **Records** (Assets, People, Stock) and **Office** (Reports, Export to Excel, Settings). The red number next to Faults is how many are open.
 
 ## Finding things
-- **Assets**: every item, with who has it and where it is. Type in the search box (tag like `PBS-LAP-001`, make, model, name). The filters narrow it down. **Export to Excel** gives the same list as a spreadsheet.
+- **Assets**: every item, with who has it and which department it belongs to. Type in the search box (tag like `PBS-LAP-001`, make, model, name). The filters narrow it down. **Export to Excel** gives the same list as a spreadsheet.
 - **Group by** on the Assets page shows the list in groups: by **Department** (what Sales has), by **Person** (what one person holds, with their accessories), by Category or by Status. Click a group to open it.
 - **People**: every staff member, with the items they hold. You can see their National ID (NID) numbers, so please treat screens and printouts as confidential.
-- Click any item or person for the full history of what happened to it. An item's page says first who has it and where it is.
+- Click any item or person for the full history of what happened to it. An item's page says first who has it and its department. Everything someone holds belongs to their department.
 - **Reports**: service history by vendor (every service job, grouped by who did the work), with **Export to Excel**.
 
 ## Printing a leaver clearance sheet (HR)

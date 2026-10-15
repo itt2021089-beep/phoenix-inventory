@@ -47,9 +47,9 @@ export type ChangeLogExportRow = TimelineRow & {
   asset: { asset_tag: string } | null
 }
 
-/** "IT store → Desk 1" collapses to just the side that is set, as the workbook had it. */
-function side(employee: string | undefined, location: string | undefined, text: string | null) {
-  return employee ?? location ?? text ?? ''
+/** A Change Log side: the person if there is one, else the text (a department or status). */
+function side(employee: string | undefined, text: string | null) {
+  return employee ?? text ?? ''
 }
 
 export function changeLogRow(r: ChangeLogExportRow): (string | number)[] {
@@ -58,8 +58,8 @@ export function changeLogRow(r: ChangeLogExportRow): (string | number)[] {
     formatDate(r.change_date),
     r.asset?.asset_tag ?? '',
     labelOf(CHANGE_TYPE_LABELS, r.change_type),
-    side(r.from_employee?.full_name, r.from_location?.name, r.from_text),
-    side(r.to_employee?.full_name, r.to_location?.name, r.to_text),
+    side(r.from_employee?.full_name, r.from_text),
+    side(r.to_employee?.full_name, r.to_text),
     r.reason ?? '',
     r.handover_form?.form_no ?? '',
   ]
@@ -107,7 +107,6 @@ const DASHBOARD_LABELS: [string, string][] = [
   ['spare_total', 'Spare'],
   ['faulty_or_repair', 'Faulty or Under Repair'],
   ['lost_stolen', 'Lost / Stolen'],
-  ['in_use_without_holder', 'In Use with no person and no location'],
   ['categories_below_min', 'Categories below minimum spares'],
 ]
 

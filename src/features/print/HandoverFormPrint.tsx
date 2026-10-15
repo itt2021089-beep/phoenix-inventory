@@ -101,7 +101,7 @@ export function HandoverFormPrint() {
               {[
                 ['Employee name', e?.full_name, 'NID No.', e?.nid],
                 ['Department', e?.department?.name, 'Designation', e?.designation],
-                ['Location / desk', e?.location?.name, 'Contact no.', e?.contact_no],
+                ['Contact no.', e?.contact_no, '', ''],
               ].map(([l1, v1, l2, v2]) => (
                 <tr key={l1}>
                   <td className={`${cell} w-[18%]`}>

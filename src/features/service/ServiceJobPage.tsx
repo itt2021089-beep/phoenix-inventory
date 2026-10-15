@@ -16,7 +16,7 @@ import { useAuth } from '@/features/auth/useAuth'
 import { usePhotos } from '@/features/photos/api'
 import { PhotoGallery } from '@/features/photos/PhotoGallery'
 import { PhotoUpload } from '@/features/photos/PhotoUpload'
-import { SERVICE_JOB_TYPE_LABELS, labelOf } from '@/lib/constants'
+import { COMMON, SERVICE_JOB_TYPE_LABELS, labelOf } from '@/lib/constants'
 import { formatDate, formatMoney } from '@/lib/format'
 
 import { useServiceJob } from './api'
@@ -123,7 +123,7 @@ export function ServiceJobPage() {
                       {l.asset?.asset_tag}
                     </Link>
                     <div className="text-xs text-muted-foreground">
-                      {[l.asset?.category?.name, l.asset?.location?.name]
+                      {[l.asset?.category?.name, l.asset?.department?.name ?? COMMON]
                         .filter(Boolean)
                         .join(' · ')}
                     </div>

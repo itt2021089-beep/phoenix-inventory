@@ -7,45 +7,43 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
-import { activeOr, useDepartments, useLocations } from '@/features/lookups/useLookups'
-import { COMMON } from '@/lib/constants'
+import { activeOr, useAccessoryTypes, useDepartments } from '@/features/lookups/useLookups'
+import { ASSET_STATUS_LABELS, COMMON, labelOf } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
 import { todayInColombo } from '@/lib/format'
 
 import { useOpenFault } from '@/features/faults/api'
 
 import type { AssetDetail } from './api'
-import { useEndOfLife, useMoveAsset } from './useAssetActions'
+import {
+  useChangeDepartment,
+  useChangeStatus,
+  useEndOfLife,
+  useSetAccessories,
+} from './useAssetActions'
 
-/** Move: where it sits and whom it serves. Starts from where it is now. */
-export function MovePanel({ asset, onDone }: { asset: AssetDetail; onDone: () => void }) {
-  const locations = useLocations()
+/** Change department: for a shared item nobody holds (one someone holds follows them). */
+export function DepartmentPanel({ asset, onDone }: { asset: AssetDetail; onDone: () => void }) {
   const departments = useDepartments()
-  const move = useMoveAsset()
-  const [locationId, setLocationId] = useState(asset.location_id ? String(asset.location_id) : '')
-  const [departmentId, setDepartmentId] = useState(
-    asset.department_id ? String(asset.department_id) : '',
-  )
+  const change = useChangeDepartment()
+  const current = asset.department_id ? String(asset.department_id) : ''
+  const [departmentId, setDepartmentId] = useState(current)
   const [reason, setReason] = useState('')
   const [date, setDate] = useState(todayInColombo())
-  const unchanged =
-    locationId === (asset.location_id ? String(asset.location_id) : '') &&
-    departmentId === (asset.department_id ? String(asset.department_id) : '')
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Move {asset.asset_tag}</CardTitle>
+        <CardTitle>Change the department of {asset.asset_tag}</CardTitle>
       </CardHeader>
       <CardContent>
         <form
           className="grid gap-4 sm:grid-cols-2"
           onSubmit={(e) => {
             e.preventDefault()
-            move.mutate(
+            change.mutate(
               {
                 assetId: asset.id,
-                locationId: locationId ? Number(locationId) : null,
                 departmentId: departmentId ? Number(departmentId) : null,
                 reason,
                 date,
@@ -54,23 +52,9 @@ export function MovePanel({ asset, onDone }: { asset: AssetDetail; onDone: () =>
             )
           }}
         >
-          <Field label="Location / desk" htmlFor="move-location">
+          <Field label="Department" htmlFor="dept-department">
             <NativeSelect
-              id="move-location"
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-            >
-              <option value="">No location</option>
-              {activeOr(locations.data, asset.location_id).map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field label="Department" htmlFor="move-department">
-            <NativeSelect
-              id="move-department"
+              id="dept-department"
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
             >
@@ -82,25 +66,169 @@ export function MovePanel({ asset, onDone }: { asset: AssetDetail; onDone: () =>
               ))}
             </NativeSelect>
           </Field>
-          <Field label="Date" htmlFor="move-date">
+          <Field label="Date" htmlFor="dept-date">
             <Input
-              id="move-date"
+              id="dept-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          <Field label="Reason / details" htmlFor="move-reason">
-            <Input id="move-reason" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <Field label="Reason / details" htmlFor="dept-reason" className="sm:col-span-2">
+            <Input id="dept-reason" value={reason} onChange={(e) => setReason(e.target.value)} />
           </Field>
-          {move.error && (
+          {change.error && (
             <Alert variant="destructive" className="sm:col-span-2">
-              <AlertDescription>{errorMessage(move.error)}</AlertDescription>
+              <AlertDescription>{errorMessage(change.error)}</AlertDescription>
             </Alert>
           )}
           <div className="flex gap-2 sm:col-span-2">
-            <Button type="submit" disabled={unchanged || move.isPending}>
-              {move.isPending ? 'Saving...' : 'Move'}
+            <Button type="submit" disabled={departmentId === current || change.isPending}>
+              {change.isPending ? 'Saving...' : 'Change department'}
+            </Button>
+            <Button type="button" variant="outline" onClick={onDone}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+/**
+ * Change status: for Lost / Stolen (no other action sets it) or a status that is simply wrong.
+ * Taking an item back from someone is Return; Retire and Dispose have their own actions.
+ */
+export function StatusPanel({ asset, onDone }: { asset: AssetDetail; onDone: () => void }) {
+  const change = useChangeStatus()
+  const held = !!asset.assigned_employee_id
+  const choices = (['in_use', 'spare', 'faulty', 'under_repair', 'lost_stolen'] as const).filter(
+    (s) => s !== asset.status && !(s === 'spare' && held),
+  )
+  const [status, setStatus] = useState<string>(choices[0] ?? '')
+  const [reason, setReason] = useState('')
+  const [date, setDate] = useState(todayInColombo())
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Change the status of {asset.asset_tag}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            change.mutate({ assetId: asset.id, status, reason, date }, { onSuccess: onDone })
+          }}
+        >
+          <Field
+            label="New status"
+            htmlFor="status-new"
+            hint={
+              held
+                ? 'To take it back from its holder, use Return instead.'
+                : 'Retire and Dispose are under More actions.'
+            }
+          >
+            <NativeSelect
+              id="status-new"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              {choices.map((s) => (
+                <option key={s} value={s}>
+                  {labelOf(ASSET_STATUS_LABELS, s)}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+          <Field label="Date" htmlFor="status-date">
+            <Input
+              id="status-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </Field>
+          <Field label="Reason (required)" htmlFor="status-reason" className="sm:col-span-2">
+            <Input
+              id="status-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Left in a taxi on 12/10"
+            />
+          </Field>
+          {change.error && (
+            <Alert variant="destructive" className="sm:col-span-2">
+              <AlertDescription>{errorMessage(change.error)}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex gap-2 sm:col-span-2">
+            <Button type="submit" disabled={!status || !reason.trim() || change.isPending}>
+              {change.isPending ? 'Saving...' : 'Change status'}
+            </Button>
+            <Button type="button" variant="outline" onClick={onDone}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Edit accessories: correct what is with an item (a wrong import, say). No stock moves. */
+export function AccessoriesPanel({ asset, onDone }: { asset: AssetDetail; onDone: () => void }) {
+  const types = useAccessoryTypes()
+  const save = useSetAccessories()
+  const [ticked, setTicked] = useState<number[]>(asset.accessories.map((x) => x.accessory_type_id))
+  const sorted = (ids: number[]) => [...ids].sort((x, y) => x - y).join(',')
+  const unchanged = sorted(ticked) === sorted(asset.accessories.map((x) => x.accessory_type_id))
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Accessories with {asset.asset_tag}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            save.mutate({ assetId: asset.id, accessoryTypeIds: ticked }, { onSuccess: onDone })
+          }}
+        >
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {activeOr(types.data).map((t) => (
+              <label key={t.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="size-4"
+                  checked={ticked.includes(t.id)}
+                  onChange={(e) =>
+                    setTicked(
+                      e.target.checked ? [...ticked, t.id] : ticked.filter((x) => x !== t.id),
+                    )
+                  }
+                />
+                {t.name}
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A correction: stock does not change. If the stock count is wrong too, use Stock, then
+            Adjust. Handing an accessory over or getting one back is part of Issue and Return.
+          </p>
+          {save.error && (
+            <Alert variant="destructive">
+              <AlertDescription>{errorMessage(save.error)}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={unchanged || save.isPending}>
+              {save.isPending ? 'Saving...' : 'Save accessories'}
             </Button>
             <Button type="button" variant="outline" onClick={onDone}>
               Cancel

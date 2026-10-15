@@ -120,7 +120,6 @@ export function PeopleListPage() {
                   <TableHead className="hidden sm:table-cell">NID No.</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead className="hidden md:table-cell">Designation</TableHead>
-                  <TableHead className="hidden lg:table-cell">Location / Desk</TableHead>
                   <TableHead className="text-right">Holds</TableHead>
                 </TableRow>
               </TableHeader>
@@ -144,7 +143,6 @@ export function PeopleListPage() {
                     </TableCell>
                     <TableCell>{p.department?.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{p.designation}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{p.location?.name}</TableCell>
                     <TableCell className="text-right tabular-nums">{heldCount(p) || ''}</TableCell>
                   </TableRow>
                 ))}

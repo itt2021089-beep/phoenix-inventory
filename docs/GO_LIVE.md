@@ -26,6 +26,7 @@ npx supabase db push          # applies every file in supabase/migrations/
 npx supabase link --project-ref <DEV project ref>   # link back to DEV straight away
 ```
 - [ ] It lists the migrations and applies them with no error. (You can also run `npm run gen:types` afterwards; it should change nothing.)
+- [ ] If PROD already has data: migration `department_follows_person` also gives every held item its holder's department (one Department Changed row each), which fixes items showing Common.
 
 ## 3. Create the accounts (Supabase dashboard -> Authentication -> Users -> Add user, auto-confirm)
 Make three people, with strong passwords you give them in person (there is no password email):

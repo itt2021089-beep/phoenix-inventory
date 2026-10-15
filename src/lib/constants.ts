@@ -52,6 +52,9 @@ export const CHANGE_TYPE_LABELS: Record<ChangeType, string> = {
   os_reinstalled: 'OS Reinstalled',
   retired: 'Retired',
   disposed: 'Disposed',
+  department_changed: 'Department Changed',
+  status_changed: 'Status Changed',
+  accessories_changed: 'Accessories Changed',
 }
 
 export const CATEGORY_GROUP_LABELS: Record<CategoryGroup, string> = {

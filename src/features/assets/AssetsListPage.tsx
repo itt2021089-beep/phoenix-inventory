@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useAuth } from '@/features/auth/useAuth'
-import { useCategories, useDepartments, useLocations } from '@/features/lookups/useLookups'
+import { useCategories, useDepartments } from '@/features/lookups/useLookups'
 import { ASSET_STATUS_LABELS, COMMON } from '@/lib/constants'
 import { downloadWorkbook, exportFileName } from '@/lib/excel'
 import { todayInColombo } from '@/lib/format'
@@ -35,7 +35,7 @@ import {
   groupAssets,
 } from './filters'
 
-const URL_FILTERS = ['category', 'status', 'department', 'location'] as const
+const URL_FILTERS = ['category', 'status', 'department'] as const
 
 /** The asset table. In a grouped view, `hide` drops the column the group heading already says. */
 function AssetTable({ rows, hide }: { rows: AssetListRow[]; hide?: GroupBy }) {
@@ -53,7 +53,6 @@ function AssetTable({ rows, hide }: { rows: AssetListRow[]; hide?: GroupBy }) {
           {hide !== 'department' && (
             <TableHead className="hidden lg:table-cell">Department</TableHead>
           )}
-          <TableHead className="hidden lg:table-cell">Location / Desk</TableHead>
           {hide === 'person' && <TableHead className="hidden sm:table-cell">Accessories</TableHead>}
         </TableRow>
       </TableHeader>
@@ -83,7 +82,6 @@ function AssetTable({ rows, hide }: { rows: AssetListRow[]; hide?: GroupBy }) {
             {hide !== 'department' && (
               <TableCell className="hidden lg:table-cell">{a.department?.name ?? COMMON}</TableCell>
             )}
-            <TableCell className="hidden lg:table-cell">{a.location?.name}</TableCell>
             {hide === 'person' && (
               <TableCell className="hidden text-muted-foreground sm:table-cell">
                 {a.asset_accessories
@@ -119,7 +117,6 @@ export function AssetsListPage() {
   const assets = useAssetList()
   const categories = useCategories()
   const departments = useDepartments()
-  const locations = useLocations()
   const [exporting, setExporting] = useState(false)
 
   // A few hundred rows at most, so filtering on every render is cheap.
@@ -196,7 +193,7 @@ export function AssetsListPage() {
         }
       />
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Input
           type="search"
           placeholder="Search tag, serial, person, NID, model..."
@@ -243,18 +240,6 @@ export function AssetsListPage() {
             </option>
           ))}
           <option value="common">{COMMON} (no department)</option>
-        </NativeSelect>
-        <NativeSelect
-          aria-label="Location"
-          value={filters.location}
-          onChange={(e) => setFilter('location', e.target.value)}
-        >
-          <option value="">All locations</option>
-          {locations.data?.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
         </NativeSelect>
       </div>
 

@@ -366,6 +366,20 @@ The database keeps every table, view and function (nothing is deleted), so old d
 - Label size and start position options (always 50 x 25 mm on A4, from the first label)
 - Group by Location on the Assets page
 
+**Department follows the person (Sahan, 15/10/2026).** Found on PROD after the first import: an
+item copied its holder's department only at issue or transfer, so people imported without a
+department left their items as Common even after Sahan set it.
+- Migration `department_follows_person`: changing a person's department moves what they hold
+  (a Department Changed row each); a one-time fix matched every held item to its holder.
+- Admin can now correct an item's status (with a reason; Lost / Stolen had no action at all), a
+  shared item's department, and the accessories with an item (no stock movement).
+- Location / desk is gone from every screen, form, print and export; department is enough. A
+  shared item's room goes in its Notes. Columns stay in the database, unused.
+- Checks: `supabase/tests/department.sql` (new) and the other 8 suites pass on a fresh local
+  database; 172 unit tests; in the browser on a local copy of the import: the person's
+  department change moved their laptop and headset, Change status, Change department and Edit
+  accessories each saved with a Change Log row, and 12 pages fit a phone.
+
 ### Later (not scheduled)
 - Email reminders through custom SMTP, using the company mailbox.
 - Stock-take mode: walk the office scanning labels; the app lists what wasn't scanned.

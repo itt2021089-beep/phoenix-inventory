@@ -8,11 +8,10 @@ import {
   useAccessoryTypes,
   useCategories,
   useDepartments,
-  useLocations,
   useStockItems,
   useVendors,
 } from '@/features/lookups/useLookups'
-import { LOCATION_KIND_LABELS, VENDOR_KIND_LABELS } from '@/lib/constants'
+import { VENDOR_KIND_LABELS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 import { CategoriesEditor } from './CategoriesEditor'
@@ -23,7 +22,6 @@ const TABS = [
   { key: 'categories', label: 'Categories' },
   { key: 'accessories', label: 'Accessories' },
   { key: 'departments', label: 'Departments' },
-  { key: 'locations', label: 'Locations' },
   { key: 'vendors', label: 'Suppliers & vendors' },
   { key: 'thresholds', label: 'Reminders & limits' },
 ] as const
@@ -41,10 +39,9 @@ export function SettingsPage() {
   const accessories = useAccessoryTypes()
   const stock = useStockItems()
   const departments = useDepartments()
-  const locations = useLocations()
   const vendors = useVendors()
   // The thresholds tab loads its own rows, so it has no query to show a spinner for here.
-  const active = { categories, accessories, departments, locations, vendors, thresholds: null }[tab]
+  const active = { categories, accessories, departments, vendors, thresholds: null }[tab]
 
   return (
     <div>
@@ -114,26 +111,6 @@ export function SettingsPage() {
               canEdit={canEdit}
               rows={departments.data}
               columns={[{ key: 'name', label: 'Department', required: true }]}
-            />
-          )}
-          {tab === 'locations' && locations.data && (
-            <ListEditor
-              table="locations"
-              noun="location"
-              canEdit={canEdit}
-              rows={locations.data}
-              columns={[
-                { key: 'name', label: 'Location / desk', required: true },
-                {
-                  key: 'kind',
-                  label: 'Kind',
-                  type: 'select',
-                  required: true,
-                  options: options(LOCATION_KIND_LABELS),
-                  show: (r) =>
-                    LOCATION_KIND_LABELS[r.kind as keyof typeof LOCATION_KIND_LABELS] ?? '',
-                },
-              ]}
             />
           )}
           {tab === 'vendors' && vendors.data && (

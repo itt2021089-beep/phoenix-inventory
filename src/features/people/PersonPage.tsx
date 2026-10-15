@@ -204,7 +204,6 @@ export function PersonPage() {
               <span className="font-mono">{p.nid}</span>
             </Detail>
             <Detail label="Department">{p.department?.name ?? 'None'}</Detail>
-            <Detail label="Desk / location">{p.location?.name ?? 'None'}</Detail>
             <Detail label="Contact no.">{p.contact_no}</Detail>
             <Detail label="Joined">{formatDate(p.joined_on)}</Detail>
             <Detail label="Left">{formatDate(p.left_on)}</Detail>

@@ -3,10 +3,12 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   ArrowRight,
+  Building2,
   Copy,
-  MapPin,
+  Package,
   Pencil,
   QrCode,
+  Tag,
   Trash2,
   Undo2,
   UserRound,
@@ -28,12 +30,18 @@ import { customFieldsOf } from '@/lib/db'
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format'
 
 import { useAsset, useTimeline } from './api'
-import { EndOfLifePanel, MovePanel, OpenFaultPanel } from './AssetActionPanels'
+import {
+  AccessoriesPanel,
+  DepartmentPanel,
+  EndOfLifePanel,
+  OpenFaultPanel,
+  StatusPanel,
+} from './AssetActionPanels'
 import { AssetPhotos } from './AssetPhotos'
 import { RepairHistory } from './RepairHistory'
 import { changeExtras, changeTitle, describeChange } from './timeline'
 
-type Panel = null | 'move' | 'fault' | 'retire' | 'dispose'
+type Panel = null | 'department' | 'status' | 'accessories' | 'fault' | 'retire' | 'dispose'
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   if (children === null || children === undefined || children === '') return null
@@ -102,12 +110,12 @@ export function AssetPage() {
         description={[a.category?.name, a.make, a.model].filter(Boolean).join(' · ')}
       />
 
-      {/* Who has it and where, first, because that is what most visits are for. */}
+      {/* Who has it and which department it serves, first: that is what most visits are for. */}
       <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
         {a.employee ? (
           <UserRound className="size-5 shrink-0 text-primary" aria-hidden />
         ) : (
-          <MapPin className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          <Building2 className="size-5 shrink-0 text-muted-foreground" aria-hidden />
         )}
         <p className="min-w-0 text-sm">
           {a.employee ? (
@@ -121,16 +129,14 @@ export function AssetPage() {
               </Link>
               {' · '}
               {a.department?.name ?? COMMON}
-              {a.location && ` · ${a.location.name}`}
               {a.date_assigned && (
                 <span className="text-muted-foreground">, since {formatDate(a.date_assigned)}</span>
               )}
             </>
           ) : (
             <>
-              <span className="font-semibold">{a.location?.name ?? 'No location set'}</span>
-              {' · '}
-              {a.department?.name ?? COMMON}
+              <span className="font-semibold">{a.department?.name ?? COMMON}</span>
+              <span className="text-muted-foreground"> · not with anyone</span>
               {a.status === 'spare' && (
                 <span className="text-muted-foreground">, ready to issue</span>
               )}
@@ -170,7 +176,28 @@ export function AssetPage() {
           <ActionMenu
             items={[
               ...(active
-                ? [{ label: 'Move', icon: <MapPin />, onSelect: () => setPanel('move') }]
+                ? [
+                    {
+                      label: 'Change status',
+                      icon: <Tag />,
+                      onSelect: () => setPanel('status'),
+                    },
+                    // Someone's item follows their department; only a shared item has its own.
+                    ...(a.assigned_employee_id
+                      ? []
+                      : [
+                          {
+                            label: 'Change department',
+                            icon: <Building2 />,
+                            onSelect: () => setPanel('department'),
+                          },
+                        ]),
+                    {
+                      label: 'Edit accessories',
+                      icon: <Package />,
+                      onSelect: () => setPanel('accessories'),
+                    },
+                  ]
                 : []),
               'separator',
               { label: 'Edit details', icon: <Pencil />, to: `/assets/${a.asset_tag}/edit` },
@@ -207,7 +234,9 @@ export function AssetPage() {
       )}
 
       {panel === 'fault' && <OpenFaultPanel asset={a} onDone={() => setPanel(null)} />}
-      {panel === 'move' && <MovePanel asset={a} onDone={() => setPanel(null)} />}
+      {panel === 'department' && <DepartmentPanel asset={a} onDone={() => setPanel(null)} />}
+      {panel === 'status' && <StatusPanel asset={a} onDone={() => setPanel(null)} />}
+      {panel === 'accessories' && <AccessoriesPanel asset={a} onDone={() => setPanel(null)} />}
       {(panel === 'retire' || panel === 'dispose') && (
         <EndOfLifePanel asset={a} kind={panel} onDone={() => setPanel(null)} />
       )}

@@ -245,9 +245,6 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
     }))
     .filter((c) => c.name && c.tag_prefix && !ACCESSORY_CATEGORIES.includes(c.name.toLowerCase()))
 
-  // --- Locations, de-duplicated case-insensitively.
-  const spelling = pickSpellings(assetRows.map((r) => r['Location / Desk']))
-
   // --- Each row of the register, numbered as Excel shows it (header is row 1).
   type Parsed = { row: Row; line: number; nid: string; category: string }
   const parsed: Parsed[] = assetRows.map((r, i) => ({
@@ -266,12 +263,11 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
       continue
     }
     if (employees.has(r.nid)) continue
-    const location = clean(r.row['Location / Desk'])
     employees.set(r.nid, {
       full_name: tidyName(clean(r.row['Assigned To'])),
       nid: r.nid,
       department: orNull(r.row['Department']),
-      location: location ? (spelling.get(location.toLowerCase()) ?? location) : null,
+      location: null,
     })
   }
 
@@ -349,7 +345,7 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
     const nid = r.nid && isValidNid(r.nid) ? r.nid : null
 
     if (status === 'in_use' && !nid && !location) {
-      warn(`${tag}: In Use but with nobody and no location.`)
+      warn(`${tag}: In Use but with nobody. It is imported as a shared item.`)
     }
 
     assets.push({
@@ -362,7 +358,7 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
       condition,
       nid,
       department: orNull(r.row['Department']),
-      location: location ? (spelling.get(location.toLowerCase()) ?? location) : null,
+      location: null,
       date_assigned: toIsoDate(r.row['Date Assigned']),
       specification: orNull(r.row['Specification']),
       accessories_note: notes.accessoriesNote,
@@ -375,7 +371,6 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
 
   // --- Change Log. The register is the truth, so "To" becomes that asset's current holder.
   const holderOf = new Map(assets.map((a) => [a.asset_tag, a.nid]))
-  const placeOf = new Map(assets.map((a) => [a.asset_tag, a.location]))
   const change_log: ImportPayload['change_log'] = []
   const seenChangeNos = new Set<string>()
   for (const [i, r] of changeRows.entries()) {
@@ -405,10 +400,10 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
       change_date: toIsoDate(r['Date']),
       asset_tag: tag,
       change_type: type,
-      from_location: isStore ? 'IT store' : null,
+      from_location: null,
       // Where it ended up. The workbook's "To" was a person, so the row would otherwise read
       // "IT store ->" with no destination.
-      to_location: type === 'issued' || type === 'reassigned' ? (placeOf.get(tag) ?? null) : null,
+      to_location: null,
       // The log used placeholders like "Travel User 1"; the register says who really holds it.
       to_nid: type === 'issued' || type === 'reassigned' ? (holderOf.get(tag) ?? null) : null,
       from_text: isStore ? null : from || null,
@@ -528,9 +523,8 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
     })
   }
 
-  const locations = [...new Set(assets.map((a) => a.location).filter((l): l is string => !!l))]
-    .sort()
-    .map((name) => ({ name }))
+  // Locations are no longer used (Sahan, 15/10/2026): a Location / Desk column is ignored.
+  const locations: { name: string }[] = []
 
   return {
     payload: {

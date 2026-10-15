@@ -2,17 +2,23 @@ import { CHANGE_TYPE_LABELS, CONDITION_LABELS, labelOf } from '@/lib/constants'
 
 import type { TimelineRow } from './api'
 
-/** One readable line for a Change Log row: who/where it went from and to. */
+/**
+ * One readable line for a Change Log row: who it went from and to, and what changed
+ * ("Sales → Travel", "In Use → Lost / Stolen"). Locations are no longer shown (Sahan,
+ * 15/10/2026: department is enough), even on older rows that recorded one.
+ */
 export function describeChange(r: TimelineRow): string {
   const who = (from?: string, to?: string) =>
     from && to ? `${from} → ${to}` : to ? `to ${to}` : from ? `from ${from}` : ''
-  const people = who(r.from_employee?.full_name, r.to_employee?.full_name)
-  const fromLoc = r.from_location?.name
-  const toLoc = r.to_location?.name
-  const places =
-    fromLoc && toLoc && fromLoc !== toLoc ? `${fromLoc} → ${toLoc}` : (toLoc ?? fromLoc ?? '')
-  const texts = r.from_text || r.to_text ? `${r.from_text ?? ''} → ${r.to_text ?? ''}`.trim() : ''
-  return [people, places, texts].filter(Boolean).join(' · ')
+  const people =
+    r.change_type === 'department_changed'
+      ? ''
+      : who(r.from_employee?.full_name, r.to_employee?.full_name)
+  const texts =
+    r.from_text && r.to_text
+      ? `${r.from_text} → ${r.to_text}`
+      : (r.to_text ?? (r.from_text ? `was ${r.from_text}` : ''))
+  return [people, texts].filter(Boolean).join(' · ')
 }
 
 export function changeTitle(r: TimelineRow): string {

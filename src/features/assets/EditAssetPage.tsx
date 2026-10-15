@@ -91,7 +91,7 @@ export function EditAssetPage() {
             Edit <span className="font-mono">{a.asset_tag}</span>
           </>
         }
-        description="Details only. Status, person, location and department change through Issue, Return, Transfer and Move, so the Change Log always matches."
+        description="Details only. Status, person and department change through Issue, Return, Transfer and More actions on the asset page, so the Change Log always matches."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" noValidate>
         <Card>

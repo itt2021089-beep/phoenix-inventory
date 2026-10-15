@@ -29,11 +29,7 @@ export function PersonPicker({
         <div className="min-w-0">
           <p className="font-medium">{value.full_name}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {[
-              value.department?.name,
-              value.location?.name,
-              heldCount(value) ? `holds ${heldCount(value)}` : '',
-            ]
+            {[value.department?.name, heldCount(value) ? `holds ${heldCount(value)}` : '']
               .filter(Boolean)
               .join(' · ')}
           </p>

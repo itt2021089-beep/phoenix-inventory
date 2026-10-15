@@ -142,7 +142,6 @@ export function ImportPage() {
                     ['Assets', preview.counts.assets],
                     ['People', preview.counts.employees],
                     ['Categories', preview.counts.categories],
-                    ['Locations', preview.counts.locations],
                     ['Change Log rows', preview.counts.changes],
                     ['Faults', preview.counts.faults],
                     ['Consumables (opening stock)', preview.counts.stock],

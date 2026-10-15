@@ -88,7 +88,7 @@ describe('toAddAssetsArgs', () => {
     expect(args.p_fields.make).toBe('Dell')
     expect(args.p_fields.specification).toBeNull()
     expect(args.p_fields.purchase_price).toBe(125000.5)
-    expect(args.p_fields.location_id).toBeNull() // the database defaults it to the IT store
+    expect(args.p_fields).not.toHaveProperty('location_id') // location is no longer used
   })
 
   it('refuses a bad quantity, price or date', () => {

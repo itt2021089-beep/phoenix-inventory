@@ -13,8 +13,8 @@ import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { type AssetListRow, useAssetList } from '@/features/assets/api'
 import { type FaultRow, useFaults } from '@/features/faults/api'
-import { activeOr, useCategories, useLocations, useVendors } from '@/features/lookups/useLookups'
-import { SERVICE_JOB_TYPE_LABELS } from '@/lib/constants'
+import { activeOr, useCategories, useDepartments, useVendors } from '@/features/lookups/useLookups'
+import { COMMON, SERVICE_JOB_TYPE_LABELS } from '@/lib/constants'
 import { errorMessage } from '@/lib/errors'
 import { formatDate, formatMoney, todayInColombo } from '@/lib/format'
 
@@ -85,7 +85,7 @@ function ServiceJobForm({
 }) {
   const navigate = useNavigate()
   const categories = useCategories()
-  const locations = useLocations()
+  const departments = useDepartments()
   const vendors = useVendors()
   const record = useRecordServiceJob()
 
@@ -101,7 +101,7 @@ function ServiceJobForm({
   const [defaultWork, setDefaultWork] = useState('')
   const [defaultCost, setDefaultCost] = useState('')
   const [pickCategory, setPickCategory] = useState('')
-  const [pickLocation, setPickLocation] = useState('')
+  const [pickDepartment, setPickDepartment] = useState('')
   const [search, setSearch] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -133,7 +133,10 @@ function ServiceJobForm({
     (a) =>
       isActive(a) &&
       (!pickCategory || String(a.category_id) === pickCategory) &&
-      (!pickLocation || String(a.location_id) === pickLocation),
+      (!pickDepartment ||
+        (pickDepartment === 'common'
+          ? a.department_id === null
+          : String(a.department_id) === pickDepartment)),
   )
   const words = search.toLowerCase().split(/\s+/).filter(Boolean)
   const matches = search
@@ -143,7 +146,7 @@ function ServiceJobForm({
             isActive(a) &&
             !lines.some((l) => l.assetId === a.id) &&
             words.every((w) =>
-              [a.asset_tag, a.serial_number, a.make, a.model, a.category?.name, a.location?.name]
+              [a.asset_tag, a.serial_number, a.make, a.model, a.category?.name, a.department?.name]
                 .join(' ')
                 .toLowerCase()
                 .includes(w),
@@ -305,24 +308,25 @@ function ServiceJobForm({
               ))}
             </NativeSelect>
             <NativeSelect
-              aria-label="Location"
-              value={pickLocation}
-              onChange={(e) => setPickLocation(e.target.value)}
+              aria-label="Department"
+              value={pickDepartment}
+              onChange={(e) => setPickDepartment(e.target.value)}
             >
-              <option value="">Any room</option>
-              {activeOr(locations.data).map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
+              <option value="">Any department</option>
+              {activeOr(departments.data).map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
                 </option>
               ))}
+              <option value="common">{COMMON} (no department)</option>
             </NativeSelect>
             <Button
               type="button"
               variant="outline"
-              disabled={(!pickCategory && !pickLocation) || candidates.length === 0}
+              disabled={(!pickCategory && !pickDepartment) || candidates.length === 0}
               onClick={() => addAssets(candidates)}
             >
-              <Plus /> Add all {pickCategory || pickLocation ? candidates.length : ''}
+              <Plus /> Add all {pickCategory || pickDepartment ? candidates.length : ''}
             </Button>
           </div>
 
@@ -352,7 +356,7 @@ function ServiceJobForm({
                     >
                       <span className="font-mono">{a.asset_tag}</span>
                       <span className="truncate text-muted-foreground">
-                        {[a.category?.name, a.make, a.model, a.location?.name]
+                        {[a.category?.name, a.make, a.model, a.department?.name ?? COMMON]
                           .filter(Boolean)
                           .join(' · ')}
                       </span>
@@ -382,7 +386,12 @@ function ServiceJobForm({
                       <div className="min-w-0 text-sm">
                         <span className="font-mono">{asset?.asset_tag}</span>{' '}
                         <span className="text-muted-foreground">
-                          {[asset?.category?.name, asset?.make, asset?.model, asset?.location?.name]
+                          {[
+                            asset?.category?.name,
+                            asset?.make,
+                            asset?.model,
+                            asset?.department?.name ?? COMMON,
+                          ]
                             .filter(Boolean)
                             .join(' · ')}
                         </span>

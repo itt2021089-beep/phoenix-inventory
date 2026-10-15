@@ -26,7 +26,7 @@ export type ServiceLineRow = {
     make: string | null
     model: string | null
     category: { name: string } | null
-    location: { name: string } | null
+    department: { name: string } | null
   } | null
   faults: { fault_no: string }[]
 }
@@ -51,7 +51,7 @@ export const JOB_SELECT = `
     asset:assets!service_lines_asset_id_fkey (
       asset_tag, make, model,
       category:categories!assets_category_id_fkey ( name ),
-      location:locations!assets_location_id_fkey ( name )
+      department:departments!assets_department_id_fkey ( name )
     ),
     faults:fault_log!fault_log_service_line_id_fkey ( fault_no )
   )

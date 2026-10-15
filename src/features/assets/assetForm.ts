@@ -44,7 +44,6 @@ export const addAssetsSchema = assetDetailsSchema.omit({ serial_number: true }).
     .min(1, 'At least 1')
     .max(200, 'At most 200 at a time'),
   serials: z.string(),
-  location_id: z.string(),
   department_id: z.string(),
   received_date: z.iso.date('Use a valid date'),
   reason: z.string().trim(),
@@ -130,7 +129,6 @@ export function toAddAssetsArgs(values: z.output<typeof addAssetsSchema>, fields
       warranty_until: blankToNull(values.warranty_until),
       notes: blankToNull(values.notes),
       custom_values: customValuesToJson(fields, values.custom_values),
-      location_id: values.location_id ? Number(values.location_id) : null,
       department_id: values.department_id ? Number(values.department_id) : null,
       received_date: values.received_date,
       reason: blankToNull(values.reason),
