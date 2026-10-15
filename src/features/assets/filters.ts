@@ -18,7 +18,6 @@ export type AssetFilters = {
   status: string
   /** A department id, 'common' (no department) or ''. */
   department: string
-  location: string
 }
 
 export const EMPTY_FILTERS: AssetFilters = {
@@ -26,7 +25,6 @@ export const EMPTY_FILTERS: AssetFilters = {
   category: '',
   status: 'active',
   department: '',
-  location: '',
 }
 
 const norm = (s: string | null | undefined) => (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
@@ -41,7 +39,6 @@ export function filterAssets(rows: AssetListRow[], f: AssetFilters): AssetListRo
     if (f.department === 'common' && a.department_id !== null) return false
     if (f.department && f.department !== 'common' && String(a.department_id) !== f.department)
       return false
-    if (f.location && String(a.location_id) !== f.location) return false
     if (words.length) {
       const haystack = norm(
         [
@@ -52,7 +49,7 @@ export function filterAssets(rows: AssetListRow[], f: AssetFilters): AssetListRo
           a.employee?.full_name,
           a.employee?.nid,
           a.category?.name,
-          a.location?.name,
+          a.department?.name,
         ].join(' '),
       )
       // Every word must match somewhere: "dell 5400" finds the Dell Latitude 5400.
@@ -84,7 +81,6 @@ export const ASSET_REGISTER_COLUMNS = [
   'Assigned To',
   'NID No.',
   'Department',
-  'Location / Desk',
   'Date Assigned',
   'Specification',
   'Notes',
@@ -104,7 +100,6 @@ export function assetRegisterRow(a: AssetListRow): (string | number)[] {
     a.employee?.full_name ?? '',
     a.employee?.nid ?? '',
     a.department?.name ?? COMMON,
-    a.location?.name ?? '',
     formatDate(a.date_assigned),
     a.specification ?? '',
     notesColumn(a),

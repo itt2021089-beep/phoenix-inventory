@@ -1,4 +1,4 @@
-import { SERVICE_JOB_TYPE_LABELS, labelOf } from '@/lib/constants'
+import { COMMON, SERVICE_JOB_TYPE_LABELS, labelOf } from '@/lib/constants'
 import { formatDate } from '@/lib/format'
 
 import type { ServiceJobRow } from './api'
@@ -16,7 +16,7 @@ export function filterJobs(rows: ServiceJobRow[], q: string, jobType: string): S
         j.vendor?.name,
         j.invoice_no,
         j.notes,
-        ...j.lines.flatMap((l) => [l.asset?.asset_tag, l.work_done, l.asset?.location?.name]),
+        ...j.lines.flatMap((l) => [l.asset?.asset_tag, l.work_done, l.asset?.department?.name]),
       ].join(' '),
     )
     return words.every((w) => hay.includes(w))
@@ -33,7 +33,7 @@ export const SERVICE_COLUMNS = [
   'Vendor',
   'Type',
   'Asset Tag',
-  'Location',
+  'Department',
   'Work Done',
   'Cost (LKR)',
   'Next Due',
@@ -47,7 +47,7 @@ export function serviceRows(jobs: ServiceJobRow[]): (string | number)[][] {
       j.vendor?.name ?? '',
       labelOf(SERVICE_JOB_TYPE_LABELS, j.job_type),
       l.asset?.asset_tag ?? '',
-      l.asset?.location?.name ?? '',
+      l.asset?.department?.name ?? COMMON,
       l.work_done,
       Number(l.cost),
       formatDate(l.next_due_date),

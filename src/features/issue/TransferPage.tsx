@@ -190,8 +190,7 @@ function TransferForm({
               />
               {to && (
                 <p className="text-sm text-muted-foreground">
-                  Department becomes {to.department?.name ?? 'none'}; location becomes{' '}
-                  {to.location?.name ?? 'unchanged (they have no desk)'}.
+                  Department becomes {to.department?.name ?? 'Common (no department)'}.
                 </p>
               )}
               <div className="grid gap-4 sm:grid-cols-2">

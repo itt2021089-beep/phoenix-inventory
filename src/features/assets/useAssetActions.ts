@@ -22,22 +22,53 @@ function useInvalidateAssets() {
   }
 }
 
-export function useMoveAsset() {
+/** A shared item's department (one someone holds follows that person instead). */
+export function useChangeDepartment() {
   const invalidate = useInvalidateAssets()
   return useMutation({
     mutationFn: async (args: {
       assetId: string
-      locationId: number | null
       departmentId: number | null
       reason: string
       date: string
     }) => {
-      const { error } = await supabase.rpc('move_asset', {
+      const { error } = await supabase.rpc('change_asset_department', {
         p_asset_id: args.assetId,
-        p_location_id: args.locationId as number,
         p_department_id: args.departmentId as number,
         p_reason: args.reason || undefined,
-        p_move_date: args.date,
+        p_date: args.date,
+      })
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+}
+
+/** Correct a status (Lost / Stolen, or a wrong one), with a reason, written to the Change Log. */
+export function useChangeStatus() {
+  const invalidate = useInvalidateAssets()
+  return useMutation({
+    mutationFn: async (args: { assetId: string; status: string; reason: string; date: string }) => {
+      const { error } = await supabase.rpc('change_asset_status', {
+        p_asset_id: args.assetId,
+        p_status: args.status,
+        p_reason: args.reason,
+        p_date: args.date,
+      })
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+}
+
+/** Correct which accessories are with an item. No stock moves: it is a correction. */
+export function useSetAccessories() {
+  const invalidate = useInvalidateAssets()
+  return useMutation({
+    mutationFn: async (args: { assetId: string; accessoryTypeIds: number[] }) => {
+      const { error } = await supabase.rpc('set_asset_accessories', {
+        p_asset_id: args.assetId,
+        p_accessory_type_ids: args.accessoryTypeIds,
       })
       if (error) throw error
     },

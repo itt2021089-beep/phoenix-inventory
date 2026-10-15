@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
-import { activeOr, useDepartments, useLocations } from '@/features/lookups/useLookups'
+import { activeOr, useDepartments } from '@/features/lookups/useLookups'
 import { errorMessage } from '@/lib/errors'
 import { todayInColombo } from '@/lib/format'
 import { tidyName } from '@/lib/names'
@@ -32,7 +32,6 @@ const schema = z.object({
   department_id: z.string(),
   designation: z.string().trim(),
   contact_no: z.string().trim(),
-  default_location_id: z.string(),
   joined_on: z.union([z.literal(''), z.iso.date('Use a valid date')]),
   notes: z.string().trim(),
 })
@@ -44,7 +43,6 @@ const EMPTY: Values = {
   department_id: '',
   designation: '',
   contact_no: '',
-  default_location_id: '',
   joined_on: '',
   notes: '',
 }
@@ -58,7 +56,6 @@ export function PersonFormPage() {
   const qc = useQueryClient()
   const person = usePerson(id)
   const departments = useDepartments()
-  const locations = useLocations()
 
   const { register, handleSubmit, reset, control, formState } = useForm<Values>({
     resolver: zodResolver(schema),
@@ -80,7 +77,6 @@ export function PersonFormPage() {
       department_id: p.department_id ? String(p.department_id) : '',
       designation: p.designation ?? '',
       contact_no: p.contact_no ?? '',
-      default_location_id: p.default_location_id ? String(p.default_location_id) : '',
       joined_on: p.joined_on ?? '',
       notes: p.notes ?? '',
     })
@@ -94,7 +90,6 @@ export function PersonFormPage() {
         department_id: v.department_id ? Number(v.department_id) : null,
         designation: orNull(v.designation),
         contact_no: orNull(v.contact_no),
-        default_location_id: v.default_location_id ? Number(v.default_location_id) : null,
         joined_on: orNull(v.joined_on),
         notes: orNull(v.notes),
       }
@@ -130,7 +125,7 @@ export function PersonFormPage() {
     <div className="mx-auto max-w-2xl">
       <PageHeader
         title={isNew ? 'Add person' : `Edit ${person.data?.full_name}`}
-        description="Their desk is used as the default location when you issue them something."
+        description="Their department is also the department of everything they hold."
       />
       <form onSubmit={handleSubmit((v) => save.mutate(v))} className="grid gap-4" noValidate>
         <Card>
@@ -162,20 +157,6 @@ export function PersonFormPage() {
             </Field>
             <Field label="Designation" htmlFor="designation">
               <Input id="designation" {...register('designation')} />
-            </Field>
-            <Field
-              label="Desk / location"
-              htmlFor="default_location_id"
-              hint="Add desks in Settings → Locations."
-            >
-              <NativeSelect id="default_location_id" {...register('default_location_id')}>
-                <option value="">None</option>
-                {activeOr(locations.data, person.data?.default_location_id).map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </NativeSelect>
             </Field>
             <Field label="Contact no." htmlFor="contact_no">
               <Input id="contact_no" type="tel" {...register('contact_no')} />

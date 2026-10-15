@@ -143,7 +143,7 @@ describe('parseWorkbook', () => {
     })
   })
 
-  it('keeps the commonest spelling of a location and uses it everywhere', () => {
+  it('ignores the Location / Desk column: department is enough', () => {
     const r = parseWorkbook(
       sheets({
         'Asset Register': [
@@ -163,8 +163,8 @@ describe('parseWorkbook', () => {
         ],
       }),
     )
-    expect(r.payload.locations).toEqual([{ name: 'Travel Section' }])
-    expect(r.payload.assets.every((a) => a.location === 'Travel Section')).toBe(true)
+    expect(r.payload.locations).toEqual([])
+    expect(r.payload.assets.every((a) => a.location === null)).toBe(true)
   })
 
   it('turns a TBC model into a note, and converts labels to codes', () => {
@@ -204,7 +204,7 @@ describe('parseWorkbook', () => {
     expect(all).toMatch(/PBS-LAP-001 appears more than once/)
     expect(all).toMatch(/serial number is already on PBS-LAP-001/)
     expect(all).toMatch(/not 12 digits or 9 digits/)
-    expect(all).toMatch(/PBS-LAP-003: In Use but with nobody and no location/)
+    expect(all).toMatch(/PBS-LAP-003: In Use but with nobody/)
     // The second laptop loses only the clashing serial.
     expect(r.payload.assets.find((a) => a.asset_tag === 'PBS-LAP-002')?.serial_number).toBeNull()
   })
@@ -239,8 +239,8 @@ describe('parseWorkbook', () => {
       change_date: '2026-10-01',
       asset_tag: 'PBS-LAP-001',
       change_type: 'issued',
-      from_location: 'IT store',
-      to_location: 'travel section',
+      from_location: null,
+      to_location: null,
       to_nid: '200012345678',
       from_text: null,
       to_text: null,

@@ -78,7 +78,7 @@ export function LeaverClearancePrint() {
               {[
                 ['Employee name', p.full_name, 'NID No.', p.nid],
                 ['Department', p.department?.name, 'Designation', p.designation],
-                ['Location / desk', p.location?.name, 'Contact no.', p.contact_no],
+                ['Contact no.', p.contact_no, '', ''],
               ].map(([l1, v1, l2, v2]) => (
                 <tr key={l1}>
                   <td className={`${cell} w-[18%]`}>

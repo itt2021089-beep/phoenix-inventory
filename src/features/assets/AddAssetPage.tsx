@@ -15,13 +15,7 @@ import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { dashboardKeys } from '@/features/dashboard/useDashboard'
-import {
-  activeOr,
-  lookupKeys,
-  useCategories,
-  useDepartments,
-  useLocations,
-} from '@/features/lookups/useLookups'
+import { activeOr, lookupKeys, useCategories, useDepartments } from '@/features/lookups/useLookups'
 import { CATEGORY_GROUP_LABELS, COMMON } from '@/lib/constants'
 import { customFieldsOf } from '@/lib/db'
 import { errorMessage } from '@/lib/errors'
@@ -61,7 +55,6 @@ function emptyValues(): AddAssetsValues {
     warranty_until: '',
     notes: '',
     custom_values: {},
-    location_id: '',
     department_id: '',
     received_date: todayInColombo(),
     reason: '',
@@ -73,7 +66,6 @@ export function AddAssetPage() {
   const fromTag = params.get('from') ?? undefined
   const source = useAsset(fromTag)
   const categories = useCategories()
-  const locations = useLocations()
   const departments = useDepartments()
   const queryClient = useQueryClient()
   const [created, setCreated] = useState<string[] | null>(null)
@@ -96,12 +88,6 @@ export function AddAssetPage() {
   const quantity = effectiveQuantity(typedQuantity, serials)
   const dupes = duplicateSerials(serials)
 
-  // The IT store is where new things arrive; preselect it.
-  const store = locations.data?.find((l) => l.kind === 'store' && l.is_active)
-  useEffect(() => {
-    if (store && !form.getValues('location_id')) form.setValue('location_id', String(store.id))
-  }, [store, form])
-
   // "Duplicate this asset": everything but the serial, the tag and where it is now.
   useEffect(() => {
     const a = source.data
@@ -122,9 +108,8 @@ export function AddAssetPage() {
       warranty_until: a.warranty_until ?? '',
       notes: '',
       custom_values: customValuesToForm(customFieldsOf(cat), a.custom_values),
-      location_id: store ? String(store.id) : '',
     })
-  }, [source.data, categories.data, reset, store])
+  }, [source.data, categories.data, reset])
 
   const add = useMutation({
     mutationFn: async (values: Output) => {
@@ -209,7 +194,7 @@ export function AddAssetPage() {
     <div className="mx-auto max-w-2xl">
       <PageHeader
         title={fromTag ? `Duplicate ${fromTag}` : 'Add assets'}
-        description="New assets start as Spare in the IT store, with the next free tags."
+        description="New assets start as Spare, with the next free tags."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" noValidate>
         <Card>
@@ -290,19 +275,10 @@ export function AddAssetPage() {
 
         <Card>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Location" htmlFor="location_id">
-              <NativeSelect id="location_id" {...register('location_id')}>
-                {activeOr(locations.data).map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
             <Field
               label="Department"
               htmlFor="department_id"
-              hint="Who it serves. Usually set when it is issued."
+              hint="Who it serves. Leave Common if it is not for one department; issuing it sets this."
             >
               <NativeSelect id="department_id" {...register('department_id')}>
                 <option value="">{COMMON} (no department)</option>

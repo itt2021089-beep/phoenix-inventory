@@ -24,14 +24,33 @@ const row = (over: Partial<TimelineRow>): TimelineRow => ({
 })
 
 describe('timeline lines', () => {
-  it('describes an issue from the store to a person at a desk', () => {
+  it('describes an issue to a person, leaving out any old location', () => {
     const r = row({
       to_employee: { full_name: 'Test Person' },
       from_location: { name: 'IT store' },
       to_location: { name: 'Desk 1' },
     })
     expect(changeTitle(r)).toBe('Issued')
-    expect(describeChange(r)).toBe('to Test Person · IT store → Desk 1')
+    expect(describeChange(r)).toBe('to Test Person')
+  })
+
+  it('describes the new kinds of row', () => {
+    const dept = row({
+      change_type: 'department_changed',
+      to_employee: { full_name: 'Test Person' },
+      from_text: 'Sales',
+      to_text: 'Travel',
+    })
+    expect(changeTitle(dept)).toBe('Department Changed')
+    expect(describeChange(dept)).toBe('Sales → Travel')
+    const status = row({
+      change_type: 'status_changed',
+      from_text: 'In Use',
+      to_text: 'Lost / Stolen',
+    })
+    expect(describeChange(status)).toBe('In Use → Lost / Stolen')
+    const acc = row({ change_type: 'accessories_changed', from_text: null, to_text: 'Charger' })
+    expect(describeChange(acc)).toBe('Charger')
   })
 
   it('describes a transfer between people', () => {

@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { type AssetListRow, useAssetList } from '@/features/assets/api'
-import { activeOr, useAccessoryTypes, useLocations } from '@/features/lookups/useLookups'
+import { activeOr, useAccessoryTypes } from '@/features/lookups/useLookups'
 import { type PersonRow, usePeople } from '@/features/people/api'
 import { useStockList } from '@/features/stock/api'
 import { CONDITION_LABELS } from '@/lib/constants'
@@ -113,7 +113,6 @@ function IssueForm({
   /** Arrived from "Save and issue devices" on a new person. */
   newJoiner: boolean
 }) {
-  const locations = useLocations()
   const accessoryTypes = useAccessoryTypes()
   const stock = useStockList()
   const issue = useIssue()
@@ -128,9 +127,6 @@ function IssueForm({
 
   const [person, setPerson] = useState<PersonRow | null>(startPerson)
   const [lines, setLines] = useState<IssueLine[]>(startAsset ? [lineFor(startAsset)] : [])
-  const [locationId, setLocationId] = useState(
-    startPerson?.default_location_id ? String(startPerson.default_location_id) : '',
-  )
   const [date, setDate] = useState(todayInColombo())
   const [reason, setReason] = useState(newJoiner ? 'New joiner' : '')
   const [makeForm, setMakeForm] = useState(true)
@@ -143,8 +139,6 @@ function IssueForm({
 
   function choosePerson(p: PersonRow | null) {
     setPerson(p)
-    // Their desk is where it goes, unless changed.
-    setLocationId(p?.default_location_id ? String(p.default_location_id) : '')
   }
 
   const setLine = (i: number, patch: Partial<IssueLine>) =>
@@ -184,7 +178,7 @@ function IssueForm({
       {
         employeeId: person.id,
         items: issueItems(lines),
-        locationId: locationId ? Number(locationId) : null,
+        locationId: null,
         date,
         reason,
         makeForm,
@@ -362,29 +356,9 @@ function IssueForm({
 
         <Card>
           <CardHeader>
-            <CardTitle>3. Where and when</CardTitle>
+            <CardTitle>3. When</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="Location / desk"
-              htmlFor="issue-location"
-              hint={
-                person?.location ? `Their desk: ${person.location.name}` : 'They have no desk set.'
-              }
-            >
-              <NativeSelect
-                id="issue-location"
-                value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
-              >
-                <option value="">No location</option>
-                {activeOr(locations.data, locationId ? Number(locationId) : null).map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
             <Field label="Date" htmlFor="issue-date">
               <Input
                 id="issue-date"

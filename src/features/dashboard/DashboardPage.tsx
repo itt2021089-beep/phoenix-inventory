@@ -347,7 +347,6 @@ function DuePanel({
               <TableRow>
                 <TableHead>Asset</TableHead>
                 <TableHead>What</TableHead>
-                <TableHead className="hidden sm:table-cell">Where</TableHead>
                 <TableHead className="text-right">Date</TableHead>
               </TableRow>
             </TableHeader>
@@ -370,7 +369,6 @@ function DuePanel({
                   >
                     {dueLabel(r)}
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{r.location}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatDate(r.due_date)}
                   </TableCell>

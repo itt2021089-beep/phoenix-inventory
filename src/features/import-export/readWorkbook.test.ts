@@ -45,7 +45,7 @@ describe('reading a real .xlsx', () => {
       status: 'in_use',
       condition: 'good',
       nid: '200012345678',
-      location: 'Travel Section',
+      location: null,
       date_assigned: '2026-10-01',
     })
     // The mouse row and the Notes column agree on one Mouse tick.

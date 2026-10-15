@@ -90,7 +90,6 @@ describe('filterAssets', () => {
       'PBS-LAP-002',
     ])
     expect(tags(filterAssets(ROWS, { ...EMPTY_FILTERS, department: '4' }))).toEqual(['PBS-LAP-001'])
-    expect(tags(filterAssets(ROWS, { ...EMPTY_FILTERS, location: '99' }))).toEqual([])
   })
 })
 

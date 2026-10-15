@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { type AssetListRow, useAssetList } from '@/features/assets/api'
-import { activeOr, useLocations } from '@/features/lookups/useLookups'
 import {
   heldCount,
   type Holding,
@@ -107,7 +106,6 @@ function ReturnForm({
   startAsset: AssetListRow | undefined
   tickAll: boolean
 }) {
-  const locations = useLocations()
   const ret = useReturn()
   const [person, setPerson] = useState<PersonRow | null>(startPerson)
   const holdings = useHoldings(person?.id)
@@ -136,8 +134,6 @@ function ReturnForm({
   const [conditionOverride, setConditionOverride] = useState<ReturnCondition | null>(null)
   const [dataBackedUp, setDataBackedUp] = useState('')
   const [remarks, setRemarks] = useState('')
-  const store = locations.data?.find((l) => l.kind === 'store' && l.is_active)
-  const [locationId, setLocationId] = useState<string | null>(null)
   const [date, setDate] = useState(todayInColombo())
   const [makeForm, setMakeForm] = useState(!unheld)
   const [done, setDone] = useState<{
@@ -170,7 +166,6 @@ function ReturnForm({
   const autoCondition = overallReturnCondition(picked)
   const returnCondition = conditionOverride ?? autoCondition
   const missing = missingSummary(picked, (id) => byId.get(id)?.asset_tag ?? '', accessoryName)
-  const effectiveLocation = locationId ?? (store ? String(store.id) : '')
 
   const setLine = (assetId: string, patch: Partial<ReturnLine>) =>
     setLines(picked.map((l) => (l.assetId === assetId ? { ...l, ...patch } : l)))
@@ -193,7 +188,7 @@ function ReturnForm({
         remarks: [remarks.trim(), missing].filter(Boolean).join('. '),
         makeForm: makeForm && !!person,
         date,
-        locationId: effectiveLocation ? Number(effectiveLocation) : null,
+        locationId: null,
       },
       {
         onSuccess: (formNo) => {
@@ -422,19 +417,6 @@ function ReturnForm({
                   <option value="">Not recorded</option>
                   <option value="yes">Yes</option>
                   <option value="not_needed">Not needed</option>
-                </NativeSelect>
-              </Field>
-              <Field label="Back to" htmlFor="return-location">
-                <NativeSelect
-                  id="return-location"
-                  value={effectiveLocation}
-                  onChange={(e) => setLocationId(e.target.value)}
-                >
-                  {activeOr(locations.data).map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
                 </NativeSelect>
               </Field>
               <Field label="Date" htmlFor="return-date">

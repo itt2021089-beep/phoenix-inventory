@@ -32,13 +32,13 @@ const change = (over: Partial<ChangeLogExportRow> = {}): ChangeLogExportRow => (
 })
 
 describe('the Change Log tab', () => {
-  it('uses the workbook labels and DD/MM/YYYY, naming the person over the place', () => {
+  it('uses the workbook labels and DD/MM/YYYY, and leaves out locations', () => {
     expect(changeLogRow(change())).toEqual([
       'CHG-0001',
       '01/10/2026',
       'PBS-LAP-001',
       'Issued',
-      'IT store',
+      '',
       'Test Person One',
       'New joiner',
       'HO-0001',
