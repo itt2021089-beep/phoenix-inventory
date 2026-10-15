@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
 import { z } from 'zod'
@@ -16,6 +16,7 @@ import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { activeOr, useDepartments, useLocations } from '@/features/lookups/useLookups'
 import { errorMessage } from '@/lib/errors'
+import { todayInColombo } from '@/lib/format'
 import { tidyName } from '@/lib/names'
 import { nidProblem, normalizeNid } from '@/lib/nid'
 import { supabase } from '@/lib/supabase'
@@ -61,8 +62,11 @@ export function PersonFormPage() {
 
   const { register, handleSubmit, reset, control, formState } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: EMPTY,
+    // A new joiner is usually added on their first day.
+    defaultValues: isNew ? { ...EMPTY, joined_on: todayInColombo() } : EMPTY,
   })
+  // Where to go after saving a new person: their page, or straight to issuing their devices.
+  const after = useRef<'page' | 'issue'>('page')
   const { errors, isDirty } = formState
   const typedNid = useWatch({ control, name: 'nid' })
   const normalized = normalizeNid(typedNid ?? '')
@@ -105,7 +109,11 @@ export function PersonFormPage() {
     },
     onSuccess: (savedId) => {
       void qc.invalidateQueries({ queryKey: peopleKeys.all })
-      navigate(`/people/${savedId}`)
+      navigate(
+        isNew && after.current === 'issue'
+          ? `/issue?employee=${savedId}&joiner=1`
+          : `/people/${savedId}`,
+      )
     },
   })
 
@@ -185,9 +193,23 @@ export function PersonFormPage() {
             <AlertDescription>{errorMessage(save.error)}</AlertDescription>
           </Alert>
         )}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={(!isNew && !isDirty) || save.isPending}>
-            {save.isPending ? 'Saving...' : isNew ? 'Add person' : 'Save'}
+        <div className="flex flex-wrap gap-2">
+          {isNew && (
+            <Button
+              type="submit"
+              disabled={save.isPending}
+              onClick={() => (after.current = 'issue')}
+            >
+              {save.isPending ? 'Saving...' : 'Save and issue devices'}
+            </Button>
+          )}
+          <Button
+            type="submit"
+            variant={isNew ? 'outline' : 'default'}
+            disabled={(!isNew && !isDirty) || save.isPending}
+            onClick={() => (after.current = 'page')}
+          >
+            {save.isPending ? 'Saving...' : isNew ? 'Save only' : 'Save'}
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link to={isNew ? '/people' : `/people/${id}`}>Cancel</Link>
