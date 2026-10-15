@@ -107,11 +107,20 @@ export function HandoverFormPrint() {
                   <td className={`${cell} w-[18%]`}>
                     <span className={label}>{l1}</span>
                   </td>
-                  <td className={`${cell} w-[32%]`}>{v1}</td>
-                  <td className={`${cell} w-[18%]`}>
-                    <span className={label}>{l2}</span>
-                  </td>
-                  <td className={`${cell} w-[32%] font-mono`}>{v2}</td>
+                  {/* A row with one field (Contact no.) spans the whole width. */}
+                  {l2 ? (
+                    <>
+                      <td className={`${cell} w-[32%]`}>{v1}</td>
+                      <td className={`${cell} w-[18%]`}>
+                        <span className={label}>{l2}</span>
+                      </td>
+                      <td className={`${cell} w-[32%] font-mono`}>{v2}</td>
+                    </>
+                  ) : (
+                    <td className={cell} colSpan={3}>
+                      {v1}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

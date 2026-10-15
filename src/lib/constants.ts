@@ -5,7 +5,6 @@ import type {
   Condition,
   FaultCause,
   FaultStatus,
-  LocationKind,
   ServiceJobType,
   StockMovementType,
   UserRole,
@@ -60,13 +59,6 @@ export const CHANGE_TYPE_LABELS: Record<ChangeType, string> = {
 export const CATEGORY_GROUP_LABELS: Record<CategoryGroup, string> = {
   it: 'IT',
   facilities: 'Facilities',
-}
-
-export const LOCATION_KIND_LABELS: Record<LocationKind, string> = {
-  room: 'Room',
-  desk: 'Desk',
-  store: 'Store',
-  other: 'Other',
 }
 
 export const VENDOR_KIND_LABELS: Record<VendorKind, string> = {

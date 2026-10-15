@@ -16,21 +16,18 @@ export type PersonRow = {
   department_id: number | null
   designation: string | null
   contact_no: string | null
-  default_location_id: number | null
   status: string
   joined_on: string | null
   left_on: string | null
   notes: string | null
   department: { name: string } | null
-  location: { name: string } | null
   held: { count: number }[]
 }
 
 const PERSON_SELECT = `
-  id, full_name, nid, department_id, designation, contact_no, default_location_id, status,
+  id, full_name, nid, department_id, designation, contact_no, status,
   joined_on, left_on, notes,
   department:departments!employees_department_id_fkey ( name ),
-  location:locations!employees_default_location_id_fkey ( name ),
   held:assets!assets_assigned_employee_id_fkey ( count )
 `
 
@@ -78,7 +75,6 @@ export type Holding = {
   condition: string
   date_assigned: string | null
   category: { name: string } | null
-  location: { name: string } | null
   accessories: { accessory_type_id: number; accessory_types: { name: string } | null }[]
 }
 
@@ -92,7 +88,6 @@ export function useHoldings(employeeId: string | undefined) {
         .select(
           `id, asset_tag, make, model, serial_number, condition, date_assigned,
            category:categories!assets_category_id_fkey ( name ),
-           location:locations!assets_location_id_fkey ( name ),
            accessories:asset_accessories ( accessory_type_id, accessory_types ( name ) )`,
         )
         .eq('assigned_employee_id', employeeId!)

@@ -103,8 +103,10 @@ export function DepartmentPanel({ asset, onDone }: { asset: AssetDetail; onDone:
 export function StatusPanel({ asset, onDone }: { asset: AssetDetail; onDone: () => void }) {
   const change = useChangeStatus()
   const held = !!asset.assigned_employee_id
+  // Taking an item back from someone (as Spare, Faulty or Under Repair) is Return's job, so a
+  // held item can only be marked Lost / Stolen here (or set back to In Use).
   const choices = (['in_use', 'spare', 'faulty', 'under_repair', 'lost_stolen'] as const).filter(
-    (s) => s !== asset.status && !(s === 'spare' && held),
+    (s) => s !== asset.status && !(held && ['spare', 'faulty', 'under_repair'].includes(s)),
   )
   const [status, setStatus] = useState<string>(choices[0] ?? '')
   const [reason, setReason] = useState('')
@@ -127,9 +129,11 @@ export function StatusPanel({ asset, onDone }: { asset: AssetDetail; onDone: () 
             label="New status"
             htmlFor="status-new"
             hint={
-              held
-                ? 'To take it back from its holder, use Return instead.'
-                : 'Retire and Dispose are under More actions.'
+              status === 'lost_stolen' && held
+                ? `It comes off ${asset.employee?.full_name ?? 'its holder'}; the history keeps who had it.`
+                : held
+                  ? 'Faulty or for repair? Use Return: it can take it back as Faulty or Under Repair.'
+                  : 'Retire and Dispose are under More actions.'
             }
           >
             <NativeSelect
@@ -218,8 +222,11 @@ export function AccessoriesPanel({ asset, onDone }: { asset: AssetDetail; onDone
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            A correction: stock does not change. If the stock count is wrong too, use Stock, then
-            Adjust. Handing an accessory over or getting one back is part of Issue and Return.
+            A correction: stock does not change. If the stock count is wrong too,{' '}
+            <Link to="/stock" className="text-primary hover:underline">
+              adjust it in Stock
+            </Link>
+            . Handing an accessory over or getting one back is part of Issue and Return.
           </p>
           {save.error && (
             <Alert variant="destructive">

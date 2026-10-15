@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   parseNotes,
   parseWorkbook,
-  pickSpellings,
   type Sheets,
   tidyVendor,
   toAmount,
@@ -81,13 +80,6 @@ describe('parseNotes', () => {
   })
 })
 
-describe('pickSpellings', () => {
-  it('keeps the commonest spelling of one place', () => {
-    const picked = pickSpellings(['travel section', 'Travel section', 'Travel section'])
-    expect(picked.get('travel section')).toBe('Travel section')
-  })
-})
-
 describe('parseWorkbook', () => {
   it('turns a mouse row into a tick on that person’s laptop, not an asset', () => {
     const r = parseWorkbook(
@@ -141,6 +133,34 @@ describe('parseWorkbook', () => {
       full_name: 'Test Person One',
       nid: '200012345678',
     })
+  })
+
+  it("gives a held item its holder's department, whatever its own row says", () => {
+    const r = parseWorkbook(
+      sheets({
+        'Asset Register': [
+          register({ Department: 'Travel' }),
+          register({
+            'Asset Tag': 'PBS-HST-001',
+            Category: 'Headset',
+            'Serial Number': 'SN-B',
+            Department: 'Sales',
+          }),
+          register({
+            'Asset Tag': 'PBS-HST-002',
+            Category: 'Headset',
+            'Serial Number': 'SN-C',
+            Status: 'Spare',
+            'Assigned To': '',
+            'NID No.': '',
+            Department: 'IT',
+          }),
+        ],
+      }),
+    )
+    const dept = (tag: string) => r.payload.assets.find((a) => a.asset_tag === tag)?.department
+    expect(dept('PBS-HST-001')).toBe('Travel')
+    expect(dept('PBS-HST-002')).toBe('IT')
   })
 
   it('ignores the Location / Desk column: department is enough', () => {
