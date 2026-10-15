@@ -116,6 +116,7 @@ describe('the Asset Register export', () => {
     expect(notesColumn(a)).toBe('Charger, Mouse | Lenovo 65W | Sticker on lid')
   })
 
+  // The first test to load exceljs, which can take over 5 s on a busy machine.
   it('writes a real .xlsx with the header row first', async () => {
     const buffer = await buildWorkbook([
       { name: 'Asset Register', columns: ASSET_REGISTER_COLUMNS, rows: ROWS.map(assetRegisterRow) },
@@ -128,7 +129,7 @@ describe('the Asset Register export', () => {
     expect(ws.getRow(1).font?.bold).toBe(true)
     expect(ws.getCell('A2').value).toBe('PBS-LAP-001')
     expect(ws.rowCount).toBe(4)
-  })
+  }, 20_000)
 })
 
 describe('groupAssets', () => {

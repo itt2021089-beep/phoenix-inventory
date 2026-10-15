@@ -17,6 +17,7 @@ async function fixture() {
 }
 
 describe('reading a real .xlsx', () => {
+  // The first test to load exceljs, which can take over 5 s on a busy machine.
   it('finds every tab and keys rows by their header', async () => {
     const sheets = await fixture()
     expect(Object.keys(sheets)).toEqual([
@@ -30,7 +31,7 @@ describe('reading a real .xlsx', () => {
     // The wrapped header "From\n(user / location / old part)" becomes "From".
     expect(sheets['Change Log'][0]['From']).toBe('IT Store')
     expect(sheets['Asset Register'][0]['Date Assigned']).toBe('2026-10-01')
-  })
+  }, 20_000)
 
   it('maps the whole workbook as the spec describes', async () => {
     const { payload, counts, warnings, accessoryRows } = parseWorkbook(await fixture())
