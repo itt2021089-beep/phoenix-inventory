@@ -354,6 +354,18 @@ These three need Sahan (PROD, the GitHub secrets and the accounts), so they are 
   pass, including at 05:00 Colombo time.
 - the SQL suites use up CHG/FLT/HO numbers even though they roll back: never run them on PROD
 
+**Simplified (Sahan, 15/10/2026).** To keep the app simple, these were taken out of the screens.
+The database keeps every table, view and function (nothing is deleted), so old data stays.
+- Audit log page (the database still records every change in `audit_log`)
+- Import: out of the menu; kept at `/import` only for GO_LIVE step 5, then to be deleted
+- Repair-or-replace flags, their thresholds, typical replacement cost, and the Repair or
+  replace, Spend by department and Faults by cause reports (Reports is now Service by vendor)
+- The fault Investigation section (cause, responsible, notes)
+- Condition photos at issue and return (asset, fault, signed-copy and invoice photos stay)
+- Swap for a spare (Return as Faulty, then Issue a spare)
+- Label size and start position options (always 50 x 25 mm on A4, from the first label)
+- Group by Location on the Assets page
+
 ### Later (not scheduled)
 - Email reminders through custom SMTP, using the company mailbox.
 - Stock-take mode: walk the office scanning labels; the app lists what wasn't scanned.
@@ -397,7 +409,7 @@ location; an NID in the wrong format; and anything the mapping didn't recognise.
 |---|---|
 | Asset Register | Asset Tag, Category, Make, Model, Serial Number, Status, Condition, Assigned To, NID No., Department, Location / Desk, Date Assigned, Specification, Notes (accessories + accessory note + notes), Open Faults, Times Repaired |
 | Change Log | Log ID, Date, Asset Tag, Change Type, From, To, Reason / Details, Handover Form No |
-| Fault Log | Fault ID, Asset Tag, Date Reported, Reported By, Fault / Issue, Action Taken, Cost (LKR), Date Closed, Status, Remarks, Vendor, Under Warranty, Cause, Responsible |
+| Fault Log | Fault ID, Asset Tag, Date Reported, Reported By, Fault / Issue, Action Taken, Cost (LKR), Date Closed, Status, Remarks, Vendor, Under Warranty (Cause and Responsible dropped with the Investigation section, 15/10/2026) |
 | Service Log | Job No, Date, Vendor, Type, Asset Tag, Location, Work Done, Cost (LKR), Next Due |
 | Consumables | Item Code, Item, Qty Received, Qty Issued, In Stock, Reorder Level, Reorder?, Notes |
 | Dashboard | The `v_dashboard` counts and `v_category_summary` as plain values |
