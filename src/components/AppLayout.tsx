@@ -6,6 +6,7 @@ import { useNavCounts } from '@/features/dashboard/useDashboard'
 import { USER_ROLE_LABELS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
+import { BrandMark } from './BrandMark'
 import { isNavActive, navFor, phoneBarFor, type NavItem } from './nav'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
@@ -44,9 +45,7 @@ export function AppLayout() {
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 border-r bg-card md:flex md:flex-col">
         <div className="flex items-center gap-2 px-4 py-4">
-          <span className="grid size-8 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-            P
-          </span>
+          <BrandMark className="size-9" />
           <div className="min-w-0">
             <p className="truncate leading-tight font-semibold">Phoenix Inventory</p>
             <p className="truncate text-xs text-muted-foreground">Phoenix BPO Solutions</p>
@@ -104,9 +103,7 @@ export function AppLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Phone header: the role badge and sign-out live on the More page instead. */}
         <header className="flex items-center gap-2 border-b bg-card px-4 py-3 md:hidden">
-          <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-            P
-          </span>
+          <BrandMark className="size-7" />
           <p className="truncate font-semibold">Phoenix Inventory</p>
         </header>
 

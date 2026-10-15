@@ -1,6 +1,7 @@
 import { Printer } from 'lucide-react'
 import { useParams } from 'react-router'
 
+import { BrandMark } from '@/components/BrandMark'
 import { QueryState } from '@/components/QueryState'
 import { Button } from '@/components/ui/button'
 import { useHoldings, usePerson } from '@/features/people/api'
@@ -53,9 +54,12 @@ export function LeaverClearancePrint() {
 
       <article className="handover-sheet mx-auto bg-white p-[12mm] text-[12px] leading-snug text-black shadow print:p-0 print:shadow-none">
         <header className="mb-3 flex items-start justify-between border-b-2 border-black pb-2">
-          <div>
-            <p className="text-lg font-bold tracking-wide">PHOENIX BPO SOLUTIONS</p>
-            <p className="text-base font-semibold">IT Clearance: leaving the company</p>
+          <div className="flex items-center gap-3">
+            <BrandMark className="size-12" />
+            <div>
+              <p className="text-lg font-bold tracking-wide">PHOENIX BPO SOLUTIONS</p>
+              <p className="text-base font-semibold">IT Clearance: leaving the company</p>
+            </div>
           </div>
           <dl className="text-right text-xs">
             <div>

@@ -1,6 +1,7 @@
 import { Camera, CheckCircle2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
+import { BrandMark } from '@/components/BrandMark'
 import { Field } from '@/components/Field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -117,9 +118,12 @@ export function PublicReportPage({ tag }: { tag: string }) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
-      <header>
-        <p className="text-sm text-muted-foreground">Phoenix BPO · IT</p>
-        <h1 className="text-xl font-semibold">Report a problem</h1>
+      <header className="flex items-center gap-3">
+        <BrandMark className="size-10" />
+        <div>
+          <p className="text-sm text-muted-foreground">Phoenix BPO · IT</p>
+          <h1 className="text-xl font-semibold">Report a problem</h1>
+        </div>
       </header>
 
       {lookup.state === 'loading' && (
