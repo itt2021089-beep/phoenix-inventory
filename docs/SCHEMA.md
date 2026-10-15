@@ -24,7 +24,7 @@ to extend. The labels shown to users live in `src/lib/constants.ts`.
 |---|---|
 | asset_status | `in_use` In Use · `spare` Spare · `under_repair` Under Repair · `faulty` Faulty · `lost_stolen` Lost / Stolen · `retired` Retired · `disposed` Disposed |
 | condition | `new` New · `good` Good · `fair` Fair · `poor` Poor · `damaged` Damaged |
-| change_type | `received_new` Received (New) · `issued` Issued · `returned` Returned · `reassigned` Reassigned · `location_changed` Location Changed · `sent_for_repair` Sent for Repair · `back_from_repair` Back from Repair · `upgraded` Upgraded · `part_replaced` Part Replaced · `os_reinstalled` OS Reinstalled · `retired` Retired · `disposed` Disposed |
+| change_type | `received_new` Received (New) · `issued` Issued · `returned` Returned · `reassigned` Reassigned · `location_changed` Location Changed · `sent_for_repair` Sent for Repair · `back_from_repair` Back from Repair · `upgraded` Upgraded · `part_replaced` Part Replaced · `os_reinstalled` OS Reinstalled · `retired` Retired · `disposed` Disposed · `department_changed` Department Changed · `status_changed` Status Changed · `accessories_changed` Accessories Changed |
 | fault_status | `open` Open · `in_progress` In Progress · `with_vendor` With Vendor · `closed` Closed |
 | fault_cause | `wear_and_tear` · `accident` · `misuse` · `power_issue` · `manufacturing_defect` · `unknown` |
 | fault_source | `admin` · `qr` |
@@ -190,6 +190,15 @@ Dashboard warning (not a constraint): an asset that is In Use but has no person 
 
 `employees` also has a trigger: setting `status = 'left'` is refused while the person still holds
 any asset, and the error lists the tags.
+
+**Department follows the person** (trigger `employees_department_follow`, migration
+`department_follows_person`): changing a person's `department_id` moves every asset they hold to
+it, writing a `department_changed` row per asset. An asset nobody holds keeps its own department.
+
+**Location is no longer used** (Sahan, 15/10/2026: department is enough). `locations`,
+`assets.location_id`, `employees.default_location_id`, `stock_items.location_id` and the Change
+Log's `from_location_id` / `to_location_id` stay (nothing is deleted), but no screen reads or
+writes them. The RPCs still fill them in as before (the employee's desk, the IT store), unseen.
 
 ### asset_accessories (accessories currently with an asset)
 ```
@@ -387,7 +396,10 @@ in SQL carry a `p_` prefix (`p_employee_id`, `p_items`, ...), which is what the 
 | `return_assets(items jsonb, return_condition, data_backed_up, remarks, make_form bool)` | `items` is `[{asset_id, condition, accessories_returned[], accessories_missing[], next_status, fault_description?}]`, where `next_status` is spare, under_repair or faulty. All items must have the same holder (or none); a form needs a holder. Clears the person and the department, and moves the asset to `location_id` (default: the IT store). Returned accessories linked to a stock item go back to stock and come off the asset; other returned ones (charger, bag) stay with it; missing ones come off. Writes `returned` rows and puts 1 back in stock for each returned stock-linked accessory (a missing one puts nothing back). A `fault_description` opens a fault (reporter and holder: the person returning it), and the row's `reason` gets `FLT-0001: <description>`. |
 | `transfer_assets(from_employee_id, to_employee_id, asset_ids uuid[], make_form bool)` | Writes `reassigned` rows. Department and location follow the new employee (location stays put if they have no desk). Accessories go with the asset. |
 | `swap_asset(faulty_asset_id, spare_asset_id, fault_description, swap_date, fault_id)` | The faulty asset must be In Use with a holder, and the spare must be Spare and of the **same category**. Opens a fault on the old asset (or, with `fault_id`, links an open fault that is already on it and opens nothing new). The spare takes the person, department and desk, and the accessories move over (no stock movement: they are not new). The old asset becomes **Faulty** (not Under Repair: Send for repair is what makes it that), held by nobody, in the IT store. Writes a `returned` row on the old asset and an `issued` row on the spare. One transaction; no handover form. |
-| `move_asset(asset_id, location_id, department_id, reason)` | Writes a `location_changed` row. |
+| `move_asset(asset_id, location_id, department_id, reason)` | Writes a `location_changed` row. No longer used by the screens (see `change_asset_department`). |
+| `change_asset_department(asset_id, department_id, reason, date)` | For an asset **nobody holds** (one someone holds follows them, and is refused). Writes a `department_changed` row. |
+| `change_asset_status(asset_id, status, reason, date)` | Corrects the status to In Use, Spare, Faulty, Under Repair or Lost / Stolen (Lost / Stolen has no other action). A reason is required. Retired and Disposed keep their own actions; Spare is refused while someone holds it (that is Return). The holder is kept (Lost / Stolen records who had it). Writes a `status_changed` row with the labels in `from_text` / `to_text`. |
+| `set_asset_accessories(asset_id, accessory_type_ids smallint[])` | Corrects which accessories are with an active asset. **No stock moves** (a correction, not a hand-over; Stock → Adjust fixes a count). Writes an `accessories_changed` row only when something changed. |
 | `send_for_repair(asset_id, fault_id, vendor_id, date, reason)` / `back_from_repair(asset_id, condition, next_status, date, reason)` | Send: Faulty or Spare → Under Repair (In Use is refused: return it first, as Faulty), writes `sent_for_repair` with the vendor name in `to_text`, and the fault (if given) goes With Vendor. Back: Under Repair → Spare (fixed: With Vendor faults close on that date) or Faulty (not fixed: they reopen), writes `back_from_repair` with the vendor in `from_text`. |
 | `retire_asset(asset_id, reason)` / `dispose_asset(asset_id, reason)` | A reason is required. Clears the person and writes the change row. Retire works from any active status; Dispose from anything but Disposed. |
 | `record_service_job(header jsonb, lines jsonb)` | `header` is `{vendor_id, job_type, service_date, invoice_no, invoice_total, notes}`; `lines` is `[{asset_id, work_done, cost, next_due_date?, notes?, fault_id?}]`. Creates the job and its lines and fills `next_due_date`. A line's `fault_id` links that fault (which must be on the same asset) to the line, closes it on the job date and sets its cost to 0 (rule 7). Retired and Disposed assets are refused. Returns `job_no`. |

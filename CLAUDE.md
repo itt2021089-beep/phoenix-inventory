@@ -15,7 +15,7 @@ finishing a phase, and tick off finished tasks there.
 Sahan built this app because filling in the Excel sheet by hand was exhausting. Every screen should
 remove keystrokes:
 - pick from lists
-- default sensibly (today's date, the employee's desk, the last known condition)
+- default sensibly (today's date, the employee's department, the last known condition)
 - offer bulk actions and "duplicate this item"
 - use QR links instead of typed tags
 
@@ -85,8 +85,9 @@ npm run backup                             # encrypted dump, needs SUPABASE_DB_U
 - **Asset status:** In Use, Spare, Under Repair, Faulty, Lost / Stolen, Retired, Disposed.
   Spare means "ready to issue", which is the spare pool. "Active" means not Retired or Disposed.
 - **Condition:** New, Good, Fair, Poor, Damaged.
-- **Change Log types:** Received (New), Issued, Returned, Reassigned, Location Changed,
-  Sent for Repair, Back from Repair, Upgraded, Part Replaced, OS Reinstalled, Retired, Disposed.
+- **Change Log types:** Received (New), Issued, Returned, Reassigned, Location Changed (old rows
+  only), Sent for Repair, Back from Repair, Upgraded, Part Replaced, OS Reinstalled, Retired,
+  Disposed, Department Changed, Status Changed, Accessories Changed.
 - **Fault status:** Open, In Progress, With Vendor, Closed.
 - **Departments:** only HR, Sales, Retention, Travel, IT. Shared areas such as the CEO room have no
   department and show as "Common".
@@ -106,10 +107,13 @@ npm run backup                             # encrypted dump, needs SUPABASE_DB_U
      stock, and ticking it as returned adds 1 back.
 2. **Tagged assets:** headsets, laptops, desktops, monitors, network gear, AC units and the like
    each get their own row and tag.
-3. **Department and location are separate.**
+3. **Department, not location** (Sahan, 15/10/2026: he knows where each department sits).
    - Department is who the asset serves (null means Common).
-   - Location is where it physically sits (a room, desk or store).
-   - An asset can also be assigned to a person.
+   - An asset held by someone serves that person's department, and follows it: changing a
+     person's department moves everything they hold, with a Department Changed row each.
+   - A shared item nobody holds keeps its own department (Change department on the asset page).
+     For a shared item's room (the CEO room AC), write it in the asset's Notes.
+   - Location / desk is not shown or edited anywhere. Its columns stay in the database, unused.
 4. **Never delete.**
    - Assets become Retired or Disposed.
    - Employees are marked Left.
@@ -117,8 +121,8 @@ npm run backup                             # encrypted dump, needs SUPABASE_DB_U
    - The UI has no delete button for any of these.
 5. **The Change Log and the asset can never disagree.**
    - Every movement of an asset writes a Change Log row.
-   - Each action (issue, return, transfer, swap, move, repair, retire, dispose) is one SQL function
-     that runs in a transaction.
+   - Each action (issue, return, transfer, change status or department, correct accessories, repair,
+     retire, dispose) is one SQL function that runs in a transaction.
    - The frontend never updates `assets.status`, `assigned_employee_id`, `location_id` or
      `department_id` directly, and a guard trigger enforces this.
 6. **Work on existing assets is a service job, not a new asset type.**
