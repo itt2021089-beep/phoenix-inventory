@@ -4,7 +4,6 @@ import {
   Boxes,
   ClipboardList,
   FileSpreadsheet,
-  History,
   LayoutDashboard,
   Package,
   Settings,
@@ -30,7 +29,7 @@ export type NavGroup = { title: string | null; items: NavItem[] }
 
 /**
  * The whole menu, in the order it is shown. Grouped so the daily jobs sit together and the
- * once-a-month pages (reports, import, audit, settings) are out of the way.
+ * once-a-month pages (reports, export, settings) are out of the way.
  */
 export const NAV_GROUPS: NavGroup[] = [
   { title: null, items: [{ to: '/', label: 'Home', icon: LayoutDashboard }] },
@@ -60,8 +59,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'Office',
     items: [
       { to: '/reports', label: 'Reports', icon: BarChart3 },
-      { to: '/export', label: 'Import / export', icon: FileSpreadsheet },
-      { to: '/audit', label: 'Audit log', icon: History, adminOnly: true },
+      { to: '/export', label: 'Export to Excel', icon: FileSpreadsheet },
       { to: '/settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -71,12 +69,7 @@ export const NAV_GROUPS: NavGroup[] = [
 export function navFor(role: UserRole | undefined): NavGroup[] {
   return NAV_GROUPS.map((g) => ({
     ...g,
-    items: g.items
-      .filter((i) => !i.adminOnly || role === 'admin')
-      // A viewer can export but not import.
-      .map((i) =>
-        i.to === '/export' && role !== 'admin' ? { ...i, label: 'Export to Excel' } : i,
-      ),
+    items: g.items.filter((i) => !i.adminOnly || role === 'admin'),
   })).filter((g) => g.items.length > 0)
 }
 
@@ -90,7 +83,10 @@ export function phoneBarFor(role: UserRole | undefined): string[] {
     : ['/', '/assets', '/people', '/faults']
 }
 
-/** Issue, Return and Transfer are one area; a page's own sub-pages keep its item lit. */
+/**
+ * Issue, Return and Transfer are one area; a page's own sub-pages keep its item lit. The hidden
+ * /import page (kept only to load the workbook into PROD at go-live) lights Export.
+ */
 export function isNavActive(to: string, pathname: string): boolean {
   if (to === '/') return pathname === '/'
   if (to === '/issue') return /^\/(issue|return|transfer)(\/|$)/.test(pathname)

@@ -8,12 +8,11 @@ describe('navFor', () => {
   it('gives the admin every page, in groups', () => {
     expect(navFor('admin').map((g) => g.title)).toEqual([null, 'Daily work', 'Records', 'Office'])
     expect(paths('admin')).toContain('/issue')
-    expect(paths('admin')).toContain('/audit')
+    expect(paths('admin')).toContain('/export')
   })
 
-  it('leaves Issue and the audit log out for a viewer, and calls Excel what it does', () => {
+  it('leaves Issue out for a viewer, and calls Excel what it does', () => {
     expect(paths('viewer')).not.toContain('/issue')
-    expect(paths('viewer')).not.toContain('/audit')
     const excel = navFor('viewer')
       .flatMap((g) => g.items)
       .find((i) => i.to === '/export')

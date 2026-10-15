@@ -1,11 +1,9 @@
-import { Download, Upload } from 'lucide-react'
-import { Link } from 'react-router'
+import { Download } from 'lucide-react'
 
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAuth } from '@/features/auth/useAuth'
+import { Card, CardContent } from '@/components/ui/card'
 import { errorMessage } from '@/lib/errors'
 
 import {
@@ -27,8 +25,6 @@ const TABS: [string, readonly string[], string?][] = [
 ]
 
 export function ExportPage() {
-  const { profile } = useAuth()
-  const isAdmin = profile?.role === 'admin'
   const exporter = useExportWorkbook()
 
   return (
@@ -61,25 +57,6 @@ export function ExportPage() {
           </Button>
         </CardContent>
       </Card>
-
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Coming the other way</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              The Excel workbook can be read back in. It is safe to repeat: the same file imported
-              twice changes nothing.
-            </p>
-            <Button variant="outline" asChild>
-              <Link to="/import">
-                <Upload /> Import from the workbook
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

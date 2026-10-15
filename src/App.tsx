@@ -29,7 +29,6 @@ import { StockListPage } from '@/features/stock/StockListPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
 import { PersonFormPage } from '@/features/people/PersonFormPage'
 import { PersonPage } from '@/features/people/PersonPage'
-import { AuditLogPage } from '@/features/audit/AuditLogPage'
 import { ReportsPage } from '@/features/reports/ReportsPage'
 import { LabelsPrintPage } from '@/features/labels/LabelsPrintPage'
 import { LeaverClearancePrint } from '@/features/print/LeaverClearancePrint'
@@ -82,8 +81,9 @@ export default function App() {
                   <Route path="assets/:tag/edit" element={<EditAssetPage />} />
                   <Route path="people/new" element={<PersonFormPage />} />
                   <Route path="people/:id/edit" element={<PersonFormPage />} />
+                  {/* Not in the menu: kept only to load the real workbook into PROD at go-live
+                      (docs/GO_LIVE.md step 5). Delete it, and its code, once that is done. */}
                   <Route path="import" element={<ImportPage />} />
-                  <Route path="audit" element={<AuditLogPage />} />
                   <Route path="issue" element={<IssuePage />} />
                   <Route path="return" element={<ReturnPage />} />
                   <Route path="transfer" element={<TransferPage />} />
