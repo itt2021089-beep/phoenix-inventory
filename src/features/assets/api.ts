@@ -18,7 +18,6 @@ const LIST_SELECT = `
   category:categories!assets_category_id_fkey ( name, tag_prefix ),
   employee:employees!assets_assigned_employee_id_fkey ( full_name, nid ),
   department:departments!assets_department_id_fkey ( name ),
-  location:locations!assets_location_id_fkey ( name ),
   asset_accessories ( accessory_type_id, accessory_types ( name ) )
 `
 
@@ -42,7 +41,6 @@ export type AssetListRow = {
   category: { name: string; tag_prefix: string } | null
   employee: { full_name: string; nid: string } | null
   department: { name: string } | null
-  location: { name: string } | null
   asset_accessories: { accessory_type_id: number; accessory_types: { name: string } | null }[]
 }
 
@@ -114,8 +112,6 @@ export type TimelineRow = {
   created_at: string
   from_employee: { full_name: string } | null
   to_employee: { full_name: string } | null
-  from_location: { name: string } | null
-  to_location: { name: string } | null
   handover_form: { form_no: string } | null
 }
 
@@ -132,8 +128,6 @@ export function useTimeline(assetId: string | undefined) {
            reason, from_text, to_text, created_at,
            from_employee:employees!change_log_from_employee_id_fkey ( full_name ),
            to_employee:employees!change_log_to_employee_id_fkey ( full_name ),
-           from_location:locations!change_log_from_location_id_fkey ( name ),
-           to_location:locations!change_log_to_location_id_fkey ( name ),
            handover_form:handover_forms!change_log_handover_form_id_fkey ( form_no )`,
         )
         .eq('asset_id', assetId!)

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import type { AccessoryType, Category, Department, Location, StockItem, Vendor } from '@/lib/db'
+import type { AccessoryType, Category, Department, StockItem, Vendor } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -11,7 +11,6 @@ export const lookupKeys = {
   all: ['lookups'] as const,
   categories: ['lookups', 'categories'] as const,
   departments: ['lookups', 'departments'] as const,
-  locations: ['lookups', 'locations'] as const,
   vendors: ['lookups', 'vendors'] as const,
   accessoryTypes: ['lookups', 'accessory_types'] as const,
   stockItems: ['lookups', 'stock_items'] as const,
@@ -38,13 +37,6 @@ export const useDepartments = () =>
     queryKey: lookupKeys.departments,
     staleTime: LONG,
     queryFn: () => rows<Department>(supabase.from('departments').select('*').order('name')),
-  })
-
-export const useLocations = () =>
-  useQuery({
-    queryKey: lookupKeys.locations,
-    staleTime: LONG,
-    queryFn: () => rows<Location>(supabase.from('locations').select('*').order('name')),
   })
 
 export const useVendors = () =>

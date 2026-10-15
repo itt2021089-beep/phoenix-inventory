@@ -208,25 +208,6 @@ export function parseNotes(notes: string): {
   }
 }
 
-/** Same place written differently ("travel section" / "Travel section") keeps the commonest spelling. */
-export function pickSpellings(names: string[]): Map<string, string> {
-  const counts = new Map<string, Map<string, number>>()
-  for (const raw of names) {
-    const name = clean(raw)
-    if (!name) continue
-    const key = name.toLowerCase()
-    const forKey = counts.get(key) ?? new Map<string, number>()
-    forKey.set(name, (forKey.get(name) ?? 0) + 1)
-    counts.set(key, forKey)
-  }
-  const chosen = new Map<string, string>()
-  for (const [key, spellings] of counts) {
-    const best = [...spellings].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0]
-    chosen.set(key, best)
-  }
-  return chosen
-}
-
 export function parseWorkbook(sheets: Sheets): ParseResult {
   const warnings: Warning[] = []
   const warn = (message: string) => warnings.push({ level: 'warning', message })
@@ -357,7 +338,8 @@ export function parseWorkbook(sheets: Sheets): ParseResult {
       status,
       condition,
       nid,
-      department: orNull(r.row['Department']),
+      // Someone's item serves their department (CLAUDE.md rule 3), whatever its own row says.
+      department: (nid && employees.get(nid)?.department) || orNull(r.row['Department']),
       location: null,
       date_assigned: toIsoDate(r.row['Date Assigned']),
       specification: orNull(r.row['Specification']),

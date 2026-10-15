@@ -1,7 +1,6 @@
 /** Unique constraints whose database wording means nothing to Sahan. */
 const CONSTRAINT_MESSAGES: Record<string, string> = {
   assets_serial_ci: 'That serial number is already on another asset.',
-  locations_name_ci: 'There is already a location with that name.',
   employees_nid_key: 'Someone already has that NID.',
   departments_name_key: 'There is already a department with that name.',
   categories_name_key: 'There is already a category with that name.',

@@ -8,7 +8,6 @@ type Person = {
   designation: string | null
   contact_no: string | null
   department: { name: string } | null
-  location: { name: string } | null
 }
 
 export type HandoverFormData = {
@@ -38,8 +37,7 @@ export type HandoverFormData = {
 }
 
 const PERSON = `full_name, nid, designation, contact_no,
-  department:departments!employees_department_id_fkey ( name ),
-  location:locations!employees_default_location_id_fkey ( name )`
+  department:departments!employees_department_id_fkey ( name )`
 
 export function useHandoverForm(formNo: string | undefined) {
   return useQuery({

@@ -33,7 +33,6 @@ function asset(over: Partial<AssetListRow>): AssetListRow {
     category: { name: 'Laptop', tag_prefix: 'LAP' },
     employee: { full_name: 'Test Person One', nid: '200012345678' },
     department: { name: 'Travel' },
-    location: { name: 'Travel section / Desk 1' },
     asset_accessories: [],
     ...over,
   }
@@ -154,7 +153,6 @@ describe('groupAssets', () => {
       department_id: null,
       department: null,
       location_id: null,
-      location: null,
     }),
   ]
 

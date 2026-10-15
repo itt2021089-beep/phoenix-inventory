@@ -21,7 +21,6 @@ const ASSET_SELECT = `
   category:categories!assets_category_id_fkey ( name, tag_prefix ),
   employee:employees!assets_assigned_employee_id_fkey ( full_name, nid ),
   department:departments!assets_department_id_fkey ( name ),
-  location:locations!assets_location_id_fkey ( name ),
   asset_accessories ( accessory_type_id, accessory_types ( name ) )
 `
 
@@ -31,8 +30,6 @@ const CHANGE_SELECT = `
   asset:assets!change_log_asset_id_fkey ( asset_tag ),
   from_employee:employees!change_log_from_employee_id_fkey ( full_name ),
   to_employee:employees!change_log_to_employee_id_fkey ( full_name ),
-  from_location:locations!change_log_from_location_id_fkey ( name ),
-  to_location:locations!change_log_to_location_id_fkey ( name ),
   handover_form:handover_forms!change_log_handover_form_id_fkey ( form_no )
 `
 

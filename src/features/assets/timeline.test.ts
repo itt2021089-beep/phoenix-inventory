@@ -17,8 +17,6 @@ const row = (over: Partial<TimelineRow>): TimelineRow => ({
   created_at: '2026-10-01T04:00:00Z',
   from_employee: null,
   to_employee: null,
-  from_location: null,
-  to_location: null,
   handover_form: null,
   ...over,
 })
@@ -27,8 +25,6 @@ describe('timeline lines', () => {
   it('describes an issue to a person, leaving out any old location', () => {
     const r = row({
       to_employee: { full_name: 'Test Person' },
-      from_location: { name: 'IT store' },
-      to_location: { name: 'Desk 1' },
     })
     expect(changeTitle(r)).toBe('Issued')
     expect(describeChange(r)).toBe('to Test Person')

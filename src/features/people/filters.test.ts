@@ -11,13 +11,11 @@ const person = (over: Partial<PersonRow>): PersonRow => ({
   department_id: 4,
   designation: 'Travel Agent',
   contact_no: '0770000000',
-  default_location_id: 2,
   status: 'active',
   joined_on: '2025-01-15',
   left_on: null,
   notes: null,
   department: { name: 'Travel' },
-  location: { name: 'Travel section / Desk 1' },
   held: [{ count: 2 }],
   ...over,
 })

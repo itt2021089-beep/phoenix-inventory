@@ -13,7 +13,6 @@ const h = (over: Partial<Holding>): Holding => ({
   condition: 'good',
   date_assigned: null,
   category: { name: 'Laptop' },
-  location: null,
   accessories: [
     { accessory_type_id: 2, accessory_types: { name: 'Mouse' } },
     { accessory_type_id: 1, accessory_types: { name: 'Charger' } },

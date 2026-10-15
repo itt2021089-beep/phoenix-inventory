@@ -24,8 +24,6 @@ const change = (over: Partial<ChangeLogExportRow> = {}): ChangeLogExportRow => (
   created_at: '2026-10-01T00:00:00Z',
   from_employee: null,
   to_employee: { full_name: 'Test Person One' },
-  from_location: { name: 'IT store' },
-  to_location: { name: 'Desk 1' },
   handover_form: { form_no: 'HO-0001' },
   asset: { asset_tag: 'PBS-LAP-001' },
   ...over,
@@ -50,8 +48,6 @@ describe('the Change Log tab', () => {
       change({
         change_type: 'location_changed',
         to_employee: null,
-        from_location: null,
-        to_location: null,
         from_text: 'Travel',
         to_text: 'Common',
         handover_form: null,

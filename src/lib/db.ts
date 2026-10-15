@@ -32,7 +32,6 @@ export type ChangeType =
   | 'status_changed'
   | 'accessories_changed'
 export type CategoryGroup = 'it' | 'facilities'
-export type LocationKind = 'room' | 'desk' | 'store' | 'other'
 export type VendorKind = 'supplier' | 'service' | 'both'
 export type FaultStatus = 'open' | 'in_progress' | 'with_vendor' | 'closed'
 export type FaultCause =
@@ -43,7 +42,6 @@ export type StockMovementType = 'received' | 'issued' | 'returned' | 'adjusted' 
 export type Profile = Omit<Tables<'profiles'>, 'role'> & { role: UserRole }
 export type Category = Tables<'categories'>
 export type Department = Tables<'departments'>
-export type Location = Tables<'locations'>
 export type Vendor = Tables<'vendors'>
 export type AccessoryType = Tables<'accessory_types'>
 export type StockItem = Tables<'stock_items'>

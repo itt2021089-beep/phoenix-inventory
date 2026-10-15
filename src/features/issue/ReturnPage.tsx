@@ -152,7 +152,6 @@ function ReturnForm({
           condition: unheld.condition,
           date_assigned: unheld.date_assigned,
           category: unheld.category,
-          location: unheld.location,
           accessories: unheld.asset_accessories,
         },
       ]
