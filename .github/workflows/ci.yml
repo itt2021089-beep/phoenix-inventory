@@ -29,3 +29,32 @@ jobs:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_build_only
         run: npm run build
+
+  # The business rules and RLS live in SQL, so they are tested in SQL: a throwaway local
+  # Supabase in Docker (the runner has Docker), every migration applied, then the suites in
+  # supabase/tests. Each suite runs in a transaction that is rolled back. Nothing here touches
+  # DEV or PROD, and no secret is needed.
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: Start a local Supabase with every migration
+        # Only what the suites need: the database, auth and storage (and the API in front).
+        run: npx supabase start -x studio,realtime,edge-runtime,logflare,vector,imgproxy,mailpit,postgres-meta,supavisor
+      - name: Run the SQL suites
+        run: |
+          set -euo pipefail
+          for f in rls actions import faults_service photos public_report phase4 dates department; do
+            echo "== $f"
+            docker exec -i supabase_db_phoenix-inventory \
+              psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q < "supabase/tests/$f.sql"
+          done
+      - name: Stop Supabase
+        if: always()
+        run: npx supabase stop --no-backup
