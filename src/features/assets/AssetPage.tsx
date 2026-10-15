@@ -272,7 +272,7 @@ export function AssetPage() {
 
       <RepairHistory assetId={a.id} price={a.purchase_price} />
 
-      <AssetPhotos assetId={a.id} timeline={timeline.data ?? []} />
+      <AssetPhotos assetId={a.id} />
 
       <Card>
         <CardHeader>

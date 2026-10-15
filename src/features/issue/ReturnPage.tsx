@@ -32,9 +32,6 @@ import {
   type ReturnLine,
   returnItems,
 } from './handover'
-import { attachConditionPhotos } from '@/features/photos/api'
-import { PhotoPicker } from '@/features/photos/PhotoPicker'
-import { MAX_CONDITION_PHOTOS } from '@/lib/photos'
 
 import { HandoverDone } from './HandoverDone'
 import { HandoverTabs } from './HandoverTabs'
@@ -63,7 +60,6 @@ const lineFor = (h: {
   accessories: Object.fromEntries(h.accessories.map((a) => [a.accessory_type_id, true])),
   nextStatus: 'spare',
   faultDescription: '',
-  photos: [],
 })
 
 export function ReturnPage() {
@@ -144,11 +140,9 @@ function ReturnForm({
   const [locationId, setLocationId] = useState<string | null>(null)
   const [date, setDate] = useState(todayInColombo())
   const [makeForm, setMakeForm] = useState(!unheld)
-  const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState<{
     formNo: string | null
     tags: string[]
-    photoProblem: string | null
   } | null>(null)
 
   const held: Holding[] = unheld
@@ -202,18 +196,10 @@ function ReturnForm({
         locationId: effectiveLocation ? Number(effectiveLocation) : null,
       },
       {
-        onSuccess: async (formNo) => {
-          // The return is saved; the condition photos go up next, against its Change Log rows.
-          setUploading(picked.some((l) => l.photos.length))
-          const photoProblem = await attachConditionPhotos(
-            picked.map((l) => ({ assetId: l.assetId, files: l.photos })),
-            'returned',
-          )
-          setUploading(false)
+        onSuccess: (formNo) => {
           setDone({
             formNo,
             tags: picked.map((l) => byId.get(l.assetId)?.asset_tag ?? ''),
-            photoProblem,
           })
         },
       },
@@ -228,7 +214,6 @@ function ReturnForm({
           title={person ? `Returned from ${person.full_name}` : 'Returned'}
           formNo={done.formNo}
           tags={done.tags}
-          photoProblem={done.photoProblem}
           personId={person?.id}
           againLabel="Return something else"
           onAgain={() => {
@@ -393,16 +378,6 @@ function ReturnForm({
                             />
                           </Field>
                         )}
-                        <div className="sm:col-span-2">
-                          <p className="mb-1 text-sm font-medium">Condition photos</p>
-                          <PhotoPicker
-                            files={l.photos}
-                            onChange={(photos) => setLine(h.id, { photos })}
-                            max={MAX_CONDITION_PHOTOS}
-                            label={`Add photos of ${h.asset_tag}`}
-                            disabled={ret.isPending || uploading}
-                          />
-                        </div>
                       </div>
                     )}
                   </div>
@@ -503,18 +478,12 @@ function ReturnForm({
             <AlertDescription>{errorMessage(ret.error)}</AlertDescription>
           </Alert>
         )}
-        <Button
-          type="submit"
-          size="lg"
-          disabled={!picked.length || !date || ret.isPending || uploading}
-        >
-          {uploading
-            ? 'Saving photos...'
-            : ret.isPending
-              ? 'Saving...'
-              : picked.length
-                ? `Return ${picked.length} item${picked.length === 1 ? '' : 's'}`
-                : 'Tick what comes back'}
+        <Button type="submit" size="lg" disabled={!picked.length || !date || ret.isPending}>
+          {ret.isPending
+            ? 'Saving...'
+            : picked.length
+              ? `Return ${picked.length} item${picked.length === 1 ? '' : 's'}`
+              : 'Tick what comes back'}
         </Button>
       </form>
     </div>

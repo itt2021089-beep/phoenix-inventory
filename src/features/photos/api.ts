@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { compressPhoto, type PhotoEntity, type PhotoKind, photoPath } from '@/lib/photos'
-import { errorMessage } from '@/lib/errors'
 import { supabase } from '@/lib/supabase'
 
 export const photoKeys = {
@@ -32,26 +31,6 @@ export function usePhotos(entity: PhotoEntity, entityId: string | undefined) {
         .select(SELECT)
         .eq('entity_type', entity)
         .eq('entity_id', entityId!)
-        .order('id')
-        .returns<PhotoRow[]>()
-      if (error) throw error
-      return data ?? []
-    },
-  })
-}
-
-/** Photos of many things of one kind at once (e.g. every Change Log row of an asset). */
-export function usePhotosFor(entity: PhotoEntity, entityIds: string[]) {
-  const key = [...entityIds].sort()
-  return useQuery({
-    queryKey: ['photos', 'many', entity, ...key],
-    enabled: key.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('photos')
-        .select(SELECT)
-        .eq('entity_type', entity)
-        .in('entity_id', key)
         .order('id')
         .returns<PhotoRow[]>()
       if (error) throw error
@@ -122,41 +101,4 @@ export function useUploadPhotos() {
       uploadPhotos(files, target),
     onSettled: () => void qc.invalidateQueries({ queryKey: photoKeys.all }),
   })
-}
-
-/**
- * Condition photos taken at issue or return belong to the Change Log row that action just
- * wrote. The action returns only the form number, so the newest row of that type for each
- * asset is looked up. Returns a plain-words problem, or null when everything was saved. The
- * issue or return itself has already happened either way.
- */
-export async function attachConditionPhotos(
-  items: { assetId: string; files: File[] }[],
-  changeType: 'issued' | 'returned',
-): Promise<string | null> {
-  const kind: PhotoKind = changeType === 'issued' ? 'issue' : 'return'
-  const problems: string[] = []
-  for (const item of items.filter((i) => i.files.length > 0)) {
-    try {
-      const { data, error } = await supabase
-        .from('change_log')
-        .select('id, change_no')
-        .eq('asset_id', item.assetId)
-        .eq('change_type', changeType)
-        .order('id', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (error) throw error
-      if (!data) throw new Error('Could not find the Change Log row to attach them to.')
-      await uploadPhotos(item.files, {
-        entity: 'change_log',
-        entityId: String(data.id),
-        folderKey: data.change_no,
-        kind,
-      })
-    } catch (e) {
-      problems.push(errorMessage(e))
-    }
-  }
-  return problems.length ? [...new Set(problems)].join(' ') : null
 }

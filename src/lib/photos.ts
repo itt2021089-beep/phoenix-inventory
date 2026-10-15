@@ -7,8 +7,6 @@ export const MAX_SIDE_PX = 1600
 export const TARGET_MB = 0.2
 /** Storage rejects anything above this (the bucket's own limit), so refuse it early. */
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
-/** A condition photo set at issue or return is 1-3 pictures. */
-export const MAX_CONDITION_PHOTOS = 3
 
 export type PhotoEntity = 'asset' | 'change_log' | 'fault' | 'handover_form' | 'service_job'
 export type PhotoKind =
