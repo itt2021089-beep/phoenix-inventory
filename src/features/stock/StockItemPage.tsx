@@ -60,7 +60,7 @@ export function StockItemPage() {
         {!items.isLoading && !items.error && (
           <p className="text-sm text-muted-foreground">
             No stock item has the code {code}.{' '}
-            <Link className="underline" to="/stock">
+            <Link className="underline" to="/stock?tab=consumables">
               Back to stock
             </Link>
           </p>
@@ -75,7 +75,7 @@ export function StockItemPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <Link
-        to="/stock"
+        to="/stock?tab=consumables"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Stock
