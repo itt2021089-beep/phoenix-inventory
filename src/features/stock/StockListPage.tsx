@@ -1,6 +1,6 @@
 import { AlertTriangle, Download, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, NavLink, useNavigate, useSearchParams } from 'react-router'
 
 import { PageHeader } from '@/components/PageHeader'
 import { QueryState } from '@/components/QueryState'
@@ -19,13 +19,45 @@ import { useAuth } from '@/features/auth/useAuth'
 import { CONSUMABLES_COLUMNS, consumablesRow } from '@/features/import-export/exportWorkbook'
 import { downloadWorkbook, exportFileName } from '@/lib/excel'
 import { todayInColombo } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 import { AddStockItem } from './AddStockItem'
 import { useMovements, useStockList } from './api'
+import { EquipmentStockTab } from './EquipmentStockTab'
 import { inOut, needsReorder } from './stockForm'
 
-/** Consumables: what is on the shelf, and what needs ordering. */
+/** Stock: Equipment (Spare assets with their purchase details) and Accessories & consumables. */
 export function StockListPage() {
+  const [params] = useSearchParams()
+  const consumables = params.get('tab') === 'consumables'
+  return (
+    <div>
+      <nav aria-label="Stock" className="mb-4 flex gap-1 border-b">
+        {[
+          ['/stock', 'Equipment', !consumables],
+          ['/stock?tab=consumables', 'Accessories and consumables', consumables],
+        ].map(([to, label, active]) => (
+          <NavLink
+            key={String(to)}
+            to={String(to)}
+            className={cn(
+              '-mb-px border-b-2 px-3 py-2 text-sm',
+              active
+                ? 'border-primary font-medium'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+      {consumables ? <ConsumablesTab /> : <EquipmentStockTab />}
+    </div>
+  )
+}
+
+/** Consumables: what is on the shelf, and what needs ordering. */
+function ConsumablesTab() {
   const { profile } = useAuth()
   const isAdmin = profile?.role === 'admin'
   const navigate = useNavigate()

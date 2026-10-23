@@ -24,6 +24,7 @@ import { ImportPage } from '@/features/import-export/ImportPage'
 import { NewServiceJobPage } from '@/features/service/NewServiceJobPage'
 import { ServiceJobPage } from '@/features/service/ServiceJobPage'
 import { ServiceListPage } from '@/features/service/ServiceListPage'
+import { ReceiveStockPage } from '@/features/stock/ReceiveStockPage'
 import { StockItemPage } from '@/features/stock/StockItemPage'
 import { StockListPage } from '@/features/stock/StockListPage'
 import { PeopleListPage } from '@/features/people/PeopleListPage'
@@ -88,6 +89,7 @@ export default function App() {
                   <Route path="return" element={<ReturnPage />} />
                   <Route path="transfer" element={<TransferPage />} />
                   <Route path="service/new" element={<NewServiceJobPage />} />
+                  <Route path="stock/receive" element={<ReceiveStockPage />} />
                 </Route>
                 <Route path="faults" element={<FaultsListPage />} />
                 <Route path="faults/:no" element={<FaultPage />} />
