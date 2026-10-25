@@ -181,9 +181,14 @@ export function EquipmentStockTab() {
                           </TableCell>
                           <TableCell className="text-right">
                             {isAdmin && (
-                              <Button asChild variant="outline" size="sm">
-                                <Link to={`/issue?asset=${r.asset_tag}`}>Issue</Link>
-                              </Button>
+                              <div className="flex justify-end gap-2">
+                                <Button asChild variant="outline" size="sm">
+                                  <Link to={`/assets/${r.asset_tag}/edit?back=stock`}>Edit</Link>
+                                </Button>
+                                <Button asChild variant="outline" size="sm">
+                                  <Link to={`/issue?asset=${r.asset_tag}`}>Issue</Link>
+                                </Button>
+                              </div>
                             )}
                           </TableCell>
                         </TableRow>

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 
 import { Field } from '@/components/Field'
 import { PageHeader } from '@/components/PageHeader'
@@ -28,6 +28,8 @@ import { useUpdateAsset } from './useAssetActions'
 export function EditAssetPage() {
   const { tag } = useParams()
   const navigate = useNavigate()
+  // Opened from the Stock page: go back there after saving, not to the asset page.
+  const backToStock = useSearchParams()[0].get('back') === 'stock'
   const asset = useAsset(tag)
   const categories = useCategories()
   const update = useUpdateAsset()
@@ -79,7 +81,7 @@ export function EditAssetPage() {
     }
     update.mutate(
       { assetId: a!.id, changes: toAssetUpdate(values, customFields) },
-      { onSuccess: () => navigate(`/assets/${a!.asset_tag}`) },
+      { onSuccess: () => navigate(backToStock ? '/stock' : `/assets/${a!.asset_tag}`) },
     )
   }
 
@@ -125,7 +127,7 @@ export function EditAssetPage() {
             {update.isPending ? 'Saving...' : 'Save'}
           </Button>
           <Button type="button" variant="outline" asChild>
-            <Link to={`/assets/${a.asset_tag}`}>Cancel</Link>
+            <Link to={backToStock ? '/stock' : `/assets/${a.asset_tag}`}>Cancel</Link>
           </Button>
         </div>
       </form>
