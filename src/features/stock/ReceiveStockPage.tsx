@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link } from 'react-router'
 import type { z } from 'zod'
@@ -15,11 +15,13 @@ import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { assetKeys, useMakesModels } from '@/features/assets/api'
+import { CustomFieldInputs } from '@/features/assets/AssetFields'
 import {
   addAssetsSchema,
   type AddAssetsValues,
   duplicateSerials,
   effectiveQuantity,
+  missingRequired,
   parseSerials,
   tagPreview,
   toAddAssetsArgs,
@@ -27,6 +29,7 @@ import {
 import { dashboardKeys } from '@/features/dashboard/useDashboard'
 import { activeOr, lookupKeys, useCategories, useVendors } from '@/features/lookups/useLookups'
 import { CATEGORY_GROUP_LABELS } from '@/lib/constants'
+import { customFieldsOf } from '@/lib/db'
 import { errorMessage } from '@/lib/errors'
 import { formatDate, todayInColombo } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
@@ -99,6 +102,7 @@ export function ReceiveStockPage() {
     name: ['category_id', 'serials', 'quantity', 'make', 'purchase_date'],
   })
   const category = categories.data?.find((c) => String(c.id) === categoryId)
+  const customFields = useMemo(() => customFieldsOf(category), [category])
   const serials = parseSerials(serialsText ?? '')
   const quantity = effectiveQuantity(Number(quantityText) || 1, serials)
   const dupes = duplicateSerials(serials)
@@ -140,7 +144,10 @@ export function ReceiveStockPage() {
         received_date: values.purchase_date || values.received_date,
         warranty_until: warrantyUntil(values.purchase_date, Number(months) || 0),
       }
-      const { data, error } = await supabase.rpc('add_assets', toAddAssetsArgs(withDates, []))
+      const { data, error } = await supabase.rpc(
+        'add_assets',
+        toAddAssetsArgs(withDates, customFields),
+      )
       if (error) throw error
       return data
     },
@@ -154,6 +161,12 @@ export function ReceiveStockPage() {
   })
 
   function onSubmit(values: Output) {
+    // The same rule as Add asset: a category's required fields can't be left blank.
+    const missing = missingRequired(customFields, values.custom_values)
+    if (missing.length) {
+      setError('root', { message: `Fill in: ${missing.join(', ')}` })
+      return
+    }
     if (dupes.length) {
       setError('serials', { message: `Listed twice: ${dupes.join(', ')}` })
       return
@@ -362,6 +375,14 @@ export function ReceiveStockPage() {
             </Field>
           </CardContent>
         </Card>
+
+        {customFields.length > 0 && (
+          <Card>
+            <CardContent>
+              <CustomFieldInputs register={register} customFields={customFields} />
+            </CardContent>
+          </Card>
+        )}
 
         {(errors.root?.message || receive.error) && (
           <Alert variant="destructive">
