@@ -93,42 +93,7 @@ export function AssetFields({
         </Field>
       </div>
 
-      {customFields.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {customFields.map((f) => {
-            const id = `custom-${f.key}`
-            const label = f.required ? `${f.label} *` : f.label
-            const reg = register(`custom_values.${f.key}`)
-            return (
-              <Field key={f.key} label={label} htmlFor={id}>
-                {f.type === 'boolean' ? (
-                  <NativeSelect id={id} {...reg}>
-                    <option value="">Not set</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </NativeSelect>
-                ) : f.type === 'select' ? (
-                  <NativeSelect id={id} {...reg}>
-                    <option value="">Not set</option>
-                    {f.options?.map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                ) : (
-                  <Input
-                    id={id}
-                    type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
-                    inputMode={f.type === 'number' ? 'decimal' : undefined}
-                    {...reg}
-                  />
-                )}
-              </Field>
-            )
-          })}
-        </div>
-      )}
+      <CustomFieldInputs register={register} customFields={customFields} />
 
       <Field
         label="Accessory details"
@@ -186,6 +151,55 @@ export function AssetFields({
       <Field label="Notes" htmlFor="notes">
         <Textarea id="notes" rows={2} {...register('notes')} />
       </Field>
+    </div>
+  )
+}
+
+/** The category's own fields (BTU, Inverter, ...), stored under custom_values. */
+export function CustomFieldInputs({
+  register,
+  customFields,
+}: {
+  // Called only with custom_values keys; see AssetFields for why register is loose.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register: UseFormRegister<any>
+  customFields: CustomField[]
+}) {
+  if (customFields.length === 0) return null
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {customFields.map((f) => {
+        const id = `custom-${f.key}`
+        const label = f.required ? `${f.label} *` : f.label
+        const reg = register(`custom_values.${f.key}`)
+        return (
+          <Field key={f.key} label={label} htmlFor={id}>
+            {f.type === 'boolean' ? (
+              <NativeSelect id={id} {...reg}>
+                <option value="">Not set</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </NativeSelect>
+            ) : f.type === 'select' ? (
+              <NativeSelect id={id} {...reg}>
+                <option value="">Not set</option>
+                {f.options?.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </NativeSelect>
+            ) : (
+              <Input
+                id={id}
+                type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+                inputMode={f.type === 'number' ? 'decimal' : undefined}
+                {...reg}
+              />
+            )}
+          </Field>
+        )
+      })}
     </div>
   )
 }
